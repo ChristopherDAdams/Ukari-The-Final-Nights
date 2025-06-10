@@ -202,6 +202,7 @@ GLOBAL_LIST_EMPTY(p25_tranceivers)
 // Clinic/Tower/Anarch Transceivers
 // ==============================
 
+
 /obj/machinery/p25transceiver/clinic
 	name = "clinic P25 transceiver"
 	desc = "A P25 radio transceiver configured for clinic communications."
@@ -216,6 +217,11 @@ GLOBAL_LIST_EMPTY(p25_tranceivers)
 	name = "bar staff P25 transceiver"
 	desc = "A P25 radio transceiver configured for ... some waitresses and a barback?"
 	p25_network = "bar"
+
+/obj/machinery/p25transceiver/sirenradio
+	name = "Siren Radio P25 transceiver"
+	desc = "A P25 radio transceiver configured for public radio communications."
+	p25_network = "sirenradio"
 
 // ==============================
 // Police Transceiver
@@ -488,6 +494,8 @@ GLOBAL_LIST_EMPTY(p25_tranceivers)
 			return "Clinic Radio Transceiver"
 		if("tower")
 			return "Tower Radio Transceiver"
+		if("sirenradio")
+			return "Siren Radio Transceiver"
 		else
 			return "Radio Transceiver"
 
@@ -514,6 +522,8 @@ GLOBAL_LIST_EMPTY(p25_tranceivers)
 			return "CRT"
 		if("tower")
 			return "TRT"
+		if("sirenradio")
+			return "SRT"
 		else
 			return "RT"
 
@@ -660,6 +670,18 @@ GLOBAL_LIST_EMPTY(p25_tranceivers)
 	var/obj/item/p25radio/ear_radio = get_item_by_slot(ITEM_SLOT_EARS)
 	if(istype(ear_radio))
 		ear_radio.check_signal()
+
+// ==============================
+//siren radio, extra functionality cause they're Siren's with a public radio show.
+// ==============================
+
+/obj/item/p25radio/sirenradio
+	name = "Siren Radio Mobile Radio"
+	desc = "A Siren Radio handheld radio, cheap, mass produced, one way radio, used for broadcasting public announcements, news, and music. Alt-click to toggle receiving."
+
+/obj/item/p25radio/police/examine(mob/user)
+	. = ..()
+	. += "<span class='notice'>Siren Radio is [receiving ? "enabled" : "disabled"]</span>"
 
 // ==============================
 //police radios, extra functionality cause they're cops

@@ -54,6 +54,9 @@
 		else
 			shoes = /obj/item/clothing/shoes/vampire/heels
 
+		backpack_contents = list(/obj/item/passport=1, /obj/item/vamp/creditcard=1, /obj/item/p25radio/sirenradio = 1, /obj/machinery/p25transceiver/sirenradio = 1)
+
+
 /obj/effect/landmark/start/daughterof
 	name = "Cabaret Worker"
 	icon_state = "Assistant"
