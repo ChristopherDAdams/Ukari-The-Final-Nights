@@ -50,33 +50,38 @@ SUBSYSTEM_DEF(zombiepool)
 	var/repairing = FALSE
 	var/masquerade_timer_running = FALSE
 
-/obj/structure/vampgate/proc/start_masquerade_leak() //only started if the gate opens.
-	if(masquerade_timer_running)
+/obj/structure/vampgate/proc/start_masquerade_leak()
+	if (masquerade_timer_running)
 		return
-	masquerade_timer_running = TRUE //Keeps it checking the gate every 60 seconds to see if it is still open.
-	spawn while(masquerade_timer_running)
-		if(icon_state != "gate-open")
-			masquerade_timer_running = FALSE
-			break
-		for(var/mob/living/carbon/human/H in GLOB.player_list) //All Graveyard Keepers lose a masquerade point, every minute.
-			if(H?.mind?.assigned_role == "Graveyard Keeper" && H.client && istype(get_area(H), /area/vtm/graveyard))
-				H.masquerade -= 1
-				to_chat(H, "<span class='danger'>You failed your duty, the graveyard gate is broken and spews darkness... Your Masquerade is quickly slipping away.</span>")
-				SSgraveyard.total_bad += 1
-		sleep(60 SECONDS)
+	masquerade_timer_running = TRUE
+	check_masquerade_leak()
+
+/obj/structure/vampgate/proc/check_masquerade_leak()
+	if (icon_state != "gate-open")
+		masquerade_timer_running = FALSE
+		return
+
+	for (var/mob/living/carbon/human/H in GLOB.player_list)
+		if (H?.mind?.assigned_role == "Graveyard Keeper" && H.client && istype(get_area(H), /area/vtm/graveyard))
+			H.masquerade -= 1
+			to_chat(H, "<span class='danger'>You failed your duty, the graveyard gate is broken and spews darkness... Your Masquerade is quickly slipping away.</span>")
+			SSgraveyard.total_bad += 1
+
+	// Schedule the next check in 60 seconds
+	addtimer(CALLBACK(src, .proc/check_masquerade_leak), 600)
+
 
 /obj/structure/vampgate/proc/punched()
 	playsound(get_turf(src), 'code/modules/wod13/sounds/get_bent.ogg', 100, FALSE)
 	pixel_z = pixel_z+rand(-1, 1)
 	pixel_w = pixel_w+rand(-1, 1)
 	punches_to_break = max(0, punches_to_break-1)
-	spawn(2)
-		pixel_z = initial(pixel_z)
-		pixel_w = initial(pixel_w)
-		if(punches_to_break == 0)
-			density = FALSE
-			icon_state = "gate-open"
-			start_masquerade_leak()
+	pixel_z = initial(pixel_z)
+	pixel_w = initial(pixel_w)
+	if(punches_to_break == 0)
+		density = FALSE
+		icon_state = "gate-open"
+		start_masquerade_leak()
 
 /obj/structure/vampgate/examine(mob/user)
 	. = ..()

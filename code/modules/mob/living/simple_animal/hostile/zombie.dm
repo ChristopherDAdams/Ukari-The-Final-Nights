@@ -26,6 +26,7 @@
 	AIStatus = AI_OFF
 	lastattacker = null
 	var/mob/living/last_attacker
+	var/datum/component/graveyard_zombie/graveyard_component
 
 /mob/living/simple_animal/hostile/zombie/Destroy()
 	SSgraveyard.alive_zombies = max(0, SSgraveyard.alive_zombies - 1)

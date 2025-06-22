@@ -440,3 +440,23 @@ INITIALIZE_IMMEDIATE(/obj/effect/landmark/start/new_player)
 /// In landmarks.dm and not unit_test.dm so it is always active in the mapping tools.
 /obj/effect/landmark/unit_test_top_right
 	name = "unit test zone top right"
+
+//TFN Landmarks: npc_movement landmarks need to be moved here.
+
+//Graveyard Landmarks: (For hostile/zombies)
+
+/obj/effect/landmark/graveyardbeacon
+	name = "Grave Yard Beacon"
+/obj/effect/landmark/graveyardbeacon/escapebeacon
+	name = "Escape Grave Yard Beacon"
+/obj/effect/landmark/graveyardbeacon/nozombies
+	name = "Grave Yard No-Zombie-Zone"
+	icon_state = "x"
+/obj/effect/landmark/graveyardbeacon/gatebeacon
+	name = "Gate Beacon"
+	var/directionwalk
+	icon_state = "ability"
+/obj/effect/landmark/graveyardbeacon/gatepath
+	name = "Gate Path Beacon"
+	var/directionwalk
+	icon_state = "npc"
