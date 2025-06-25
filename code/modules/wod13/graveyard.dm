@@ -118,8 +118,8 @@ SUBSYSTEM_DEF(graveyard)
 	var/roll = rand(1, total_weight)
 	var/running_total = 0
 
-	log_admin("🎲 weighted_zombie_type_pick(): Roll: [roll] (Total: [total_weight])")
-	log_admin("🧮 Weight List:")
+	log_admin("weighted_zombie_type_pick(): Roll: [roll] (Total: [total_weight])")
+	log_admin("Weight List:")
 	for (var/i = 1; i <= pairs.len; i += 2)
 		log_admin(" • [get_zombie_type_name(pairs[i])] => [pairs[i+1]]")
 
@@ -189,7 +189,6 @@ SUBSYSTEM_DEF(graveyard)
 	var/can_rally = TRUE
 	var/visiting_grave = FALSE
 	var/current_task = ZOMBIE_TASK_WANDER
-	var/mob/living/ai_target = null
 	var/last_rally_time = 0
 
 
@@ -245,42 +244,59 @@ SUBSYSTEM_DEF(graveyard)
 
 /datum/component/graveyard_zombie/proc/StartztypeLoop()
 	if(loop_started)
-		log_admin("StartztypeLoop() called again for [owner] — already started!")
 		return
 	loop_started = TRUE
 	zombie_behavior()
 
 /datum/component/graveyard_zombie/proc/zombie_behavior()
 	Runztype()
-	addtimer(CALLBACK(src, .proc/zombie_behavior), 40)
+	addtimer(CALLBACK(src, .proc/zombie_behavior), 10)
 
 //Every graveyard zombie component calls this every 2 seconds to "use its brain"
 /datum/component/graveyard_zombie/proc/Runztype()
-	ai_target = owner.FindTarget() //Search for Target.
-	if(prob(5)) //fake pathfinding, mindless steps help get them unstuck, harder to hit, seem like mindless zombies.
-		var/dir = pick(NORTH, SOUTH, EAST, WEST)
-		step(owner, dir)
-		return //if they do this, thats it.
-	//Different "brains" to seperate zombie type ztypes.
+	// Refresh or check target
+	//random walk
+	if (prob(10))
+		step(owner, pick(NORTH, SOUTH, EAST, WEST))
+		return
+	// Switch AI behavior by zombie_type
 	switch(zombie_type)
-		if(ZOMBIE_TYPE_DEFAULT)   current_task = default_zombie_ai()
-		if(ZOMBIE_TYPE_SIEGE)     current_task = siege_zombie_ai()
-		if(ZOMBIE_TYPE_SHRIEKER)  current_task = shrieker_zombie_ai()
-		if(ZOMBIE_TYPE_WANDERER)  current_task = wanderer_zombie_ai()
-		else            		current_task = default_zombie_ai()
+		if (ZOMBIE_TYPE_DEFAULT)   current_task = default_zombie_ai()
+		if (ZOMBIE_TYPE_SIEGE)     current_task = siege_zombie_ai()
+		if (ZOMBIE_TYPE_SHRIEKER)  current_task = shrieker_zombie_ai()
+		if (ZOMBIE_TYPE_WANDERER)  current_task = wanderer_zombie_ai()
+		else                      current_task = default_zombie_ai()
 	HandleTask(current_task)
 
 
 //The actual AI's, for zombies, they don't need to be that complicated, but this could expanded/reworked for other hostiles.
 /datum/component/graveyard_zombie/proc/default_zombie_ai()
+	if(owner.FindTarget())
+		return ZOMBIE_TASK_ATTACK
 	//has to return a task, but extra flavor and early return ztypes can go here.
-	return ai_target ? ZOMBIE_TASK_ATTACK : (GLOB.vampgate ? ZOMBIE_TASK_GO_TO_GATE : ZOMBIE_TASK_WANDER)
+	if(!owner.FindTarget())
+		return ZOMBIE_TASK_GO_TO_GATE
+
 /datum/component/graveyard_zombie/proc/siege_zombie_ai()
-	return ai_target ? ZOMBIE_TASK_ATTACK : (GLOB.vampgate ? ZOMBIE_TASK_GO_TO_GATE : ZOMBIE_TASK_WANDER)
+	if(owner.last_attacker)
+		return ZOMBIE_TASK_ATTACK
+	//has to return a task, but extra flavor and early return ztypes can go here.
+	if(!owner.last_attacker)
+		return ZOMBIE_TASK_GO_TO_GATE
+
 /datum/component/graveyard_zombie/proc/shrieker_zombie_ai()
-	return ai_target ? ZOMBIE_TASK_FLEE_AND_RALLY : ZOMBIE_TASK_WANDER
+	if(owner.FindTarget())
+		return ZOMBIE_TASK_FLEE_AND_RALLY
+	//has to return a task, but extra flavor and early return ztypes can go here.
+	if(!owner.FindTarget())
+		return ZOMBIE_TASK_WANDER
+
 /datum/component/graveyard_zombie/proc/wanderer_zombie_ai()
-	return ai_target ? ZOMBIE_TASK_ATTACK : ZOMBIE_TASK_WANDER
+	if(owner.FindTarget())
+		return ZOMBIE_TASK_ATTACK
+	//has to return a task, but extra flavor and early return ztypes can go here.
+	if(!owner.FindTarget())
+		return ZOMBIE_TASK_WANDER
 
 //Sets the zombie's current task and handles it until its done, or interupts itself, etc.
 /datum/component/graveyard_zombie/proc/HandleTask(task)
@@ -293,11 +309,13 @@ SUBSYSTEM_DEF(graveyard)
 //Tasks are the place to call the bare minimum actions needed in that tick, and, if needed, cut themselves off if already running.
 //Attack
 /datum/component/graveyard_zombie/proc/perform_attack()
-	if(!ai_target || QDELETED(ai_target)) return
-	if(get_dist(src, ai_target) <= 1)
-		owner.UnarmedAttack(ai_target)
+	var/target = owner.target
+	if (!target)
+		return
+	if (get_dist(owner, target) <= 1)
+		owner.UnarmedAttack(target)
 	else
-		step_towards(src, ai_target)
+		step_towards(owner, target)
 
 //GateRush
 /datum/component/graveyard_zombie/proc/perform_gate_rush()
@@ -379,8 +397,8 @@ SUBSYSTEM_DEF(graveyard)
 
 //Rally
 /datum/component/graveyard_zombie/proc/perform_rally()
-	start_zombie_rally(ai_target)
-	follow_at_range(ai_target)
+	start_zombie_rally(owner.target)
+	follow_at_range(owner.target)
 
 /datum/component/graveyard_zombie/proc/start_zombie_rally(mob/living/target = null)
 	if(!target && GLOB.vampgate)
@@ -396,13 +414,11 @@ SUBSYSTEM_DEF(graveyard)
 		var/datum/component/graveyard_zombie/comp = Z.graveyard_component
 		if(!comp) continue
 		if(comp.current_task == ZOMBIE_TASK_ATTACK) continue
-		comp.ai_target = target
+		comp.owner.target = target
 		comp.current_task = ZOMBIE_TASK_GO_TO_GATE
 		if (prob(20))
 			Z.emote(pick("Turns to the scream."))
 		step_towards(Z, target)
-
-
 
 /// Makes the zombie maintain a position within a certain range of a target.
 /datum/component/graveyard_zombie/proc/follow_at_range(mob/living/target, min_range = 3, max_range = 5)
