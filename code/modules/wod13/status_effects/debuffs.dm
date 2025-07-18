@@ -721,8 +721,7 @@
 					owner.log_message("used [I] due to a Muscle Spasm", LOG_ATTACK)
 					I.attack_self(owner)
 			if(3)
-				var/prev_intent = owner.a_intent
-				owner.a_intent = INTENT_HARM
+				owner.set_combat_mode(TRUE)
 
 				var/range = 1
 				if(istype(owner.get_active_held_item(), /obj/item/gun)) //get targets to shoot at
@@ -736,14 +735,13 @@
 					to_chat(owner, "<span class='warning'>Your arm spasms!</span>")
 					owner.log_message(" attacked someone due to a Muscle Spasm", LOG_ATTACK) //the following attack will log itself
 					owner.ClickOn(pick(targets))
-				owner.a_intent = prev_intent
+				owner.set_combat_mode(FALSE)
 			if(4)
-				var/prev_intent = owner.a_intent
-				owner.a_intent = INTENT_HARM
+				owner.set_combat_mode(TRUE)
 				to_chat(owner, "<span class='warning'>Your arm spasms!</span>")
 				owner.log_message("attacked [owner.p_them()]self to a Muscle Spasm", LOG_ATTACK)
 				owner.ClickOn(owner)
-				owner.a_intent = prev_intent
+				owner.set_combat_mode(FALSE)
 			if(5)
 				if(owner.incapacitated())
 					return
@@ -919,8 +917,8 @@
 
 /datum/status_effect/amok/tick()
 	. = ..()
-	var/prev_intent = owner.a_intent
-	owner.a_intent = INTENT_HARM
+	var/prev_combat_mode = owner.combat_mode
+	owner.set_combat_mode(TRUE)
 
 	var/list/mob/living/targets = list()
 	for(var/mob/living/potential_target in oview(owner, 1))
@@ -930,7 +928,7 @@
 	if(LAZYLEN(targets))
 		owner.log_message(" attacked someone due to the amok debuff.", LOG_ATTACK) //the following attack will log itself
 		owner.ClickOn(pick(targets))
-	owner.a_intent = prev_intent
+	owner.set_combat_mode(prev_combat_mode)
 
 /datum/status_effect/cloudstruck
 	id = "cloudstruck"
@@ -1044,6 +1042,45 @@
 	if(HAS_TRAIT(owner, TRAIT_IGNOREDAMAGESLOWDOWN))
 		REMOVE_TRAIT(owner, TRAIT_IGNOREDAMAGESLOWDOWN, SPECIES_TRAIT)
 
+/datum/status_effect/babyteeth
+	id = "fangs_pulled"
+	status_type = STATUS_EFFECT_UNIQUE
+	duration = 60 MINUTES
+	alert_type = /atom/movable/screen/alert/status_effect/babyteeth
+
+/atom/movable/screen/alert/status_effect/babyteeth
+	name = "Baby Teeth"
+	desc = "Your teeth are deformed! You can't bite people anymore!"
+
+/datum/status_effect/babyteeth/on_apply()
+	. = ..()
+	ADD_TRAIT(owner, TRAIT_BABY_TEETH, MAGIC_TRAIT)
+
+/datum/status_effect/babyteeth/on_remove()
+	. = ..()
+	REMOVE_TRAIT(owner, TRAIT_BABY_TEETH, MAGIC_TRAIT)
+	if(owner.has_quirk(/datum/quirk/permafangs))
+		ADD_TRAIT(owner, TRAIT_PERMAFANGS, ROUNDSTART_TRAIT)
+
+/datum/status_effect/pbabyteeth
+	id = "fangs_pulled_round"
+	status_type = STATUS_EFFECT_UNIQUE
+	duration = -1
+	alert_type = /atom/movable/screen/alert/status_effect/pbabyteeth
+
+/atom/movable/screen/alert/status_effect/pbabyteeth
+	name = "Severe Baby Teeth"
+	desc = "Your teeth are deformed! You can't bite people anymore and you don't think these will heal on their own for the night!"
+
+/datum/status_effect/pbabyteeth/on_apply()
+	. = ..()
+	ADD_TRAIT(owner, TRAIT_BABY_TEETH, MAGIC_TRAIT)
+
+/datum/status_effect/pbabyteeth/on_remove()
+	. = ..()
+	REMOVE_TRAIT(owner, TRAIT_BABY_TEETH, MAGIC_TRAIT)
+	if(owner.has_quirk(/datum/quirk/permafangs))
+		ADD_TRAIT(owner, TRAIT_PERMAFANGS, ROUNDSTART_TRAIT)
 
 //WARRIOR VALEREN 3 - BURNING TOUCH
 /datum/status_effect/burning_touch
@@ -1073,3 +1110,4 @@
 /datum/status_effect/burning_touch/Destroy()
 	source = null
 	return ..()
+
