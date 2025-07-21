@@ -6,7 +6,7 @@
 GLOBAL_LIST_EMPTY(groups)
 GLOBAL_LIST_EMPTY(canonical_groups)
 GLOBAL_LIST_EMPTY(aboutme_components) //All aboutme_components
-GLOBAL_LIST_EMPTY(chronicles)         // All chronicle datums for the round
+GLOBAL_LIST_EMPTY(chronicles)         // All chronicle datums for the round, currently events stirred by leaders/ group-wide orders.
 
 var/global/list/canonical_groups = list(
     // --- City
@@ -70,8 +70,34 @@ SUBSYSTEM_DEF(rpmanagement)
     InitAllGroups()
     return
 /datum/controller/subsystem/rpmanagement/proc/InitAllGroups()
+    var/created = ""
+    var/skipped = ""
     for (var/group_key in canonical_groups)
         if (!(group_key in GLOB.groups))
             var/typepath = canonical_groups[group_key]
             GLOB.groups[group_key] = new typepath()
+            created += "[group_key], "
+        else
+            skipped += "[group_key], "
+    // Remove trailing comma and space for neatness
+    if (length(created)) created = copytext(created, 1, length(created)-1)
+    if (length(skipped)) skipped = copytext(skipped, 1, length(skipped)-1)
     message_admins("[length(GLOB.groups)] core groups initialized!")
+    var/allkeys = ""
+    var/first = TRUE
+    for (var/key in GLOB.groups)
+        if (!first)
+            allkeys += ", "
+        allkeys += "[key]"
+        first = FALSE
+    var/msg = ""
+    msg += "Groups created: [created]\n"
+    if (length(skipped))
+        msg += "Groups already existed, skipped: [skipped]\n"
+    msg += "All group keys in GLOB.groups: [allkeys]"
+    message_admins(msg)
+
+
+
+
+

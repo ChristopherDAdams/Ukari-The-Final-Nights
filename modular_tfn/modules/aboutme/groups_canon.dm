@@ -3,48 +3,79 @@
 /datum/component/about_me/proc/assign_groups()
     src.group_keys = list()
     var/mob/living/carbon/human/H = owner
-    if (!H) return
-
-    // Always city group
+    // Always assign city group
     if (GLOB.groups && GLOB.groups[GROUP_KEY_CITY])
         src.group_keys += GROUP_KEY_CITY
 
-    if (H.dna?.species.name == "Kindred")
-        src.group_keys += GROUP_KEY_FACTION_KINDRED
-    if (H.dna?.species.name == "Werewolf")
-        src.group_keys += GROUP_KEY_FACTION_FERA
-    if (ishuman(H))
+	//ghouls get two factions, for their split loyalties and day to day knowledge, if they wish to make use of it. Or if their domitor does...
+    if (ishuman(H) && !iskindred(H) && !isgarou(H))
         src.group_keys += GROUP_KEY_FACTION_UNKNOWING
+    // Assign factions (multi-membership for now)
+    if (iskindred(H) || isghoul(H))
+        src.group_keys += GROUP_KEY_FACTION_KINDRED
+    if (iswerewolf(H))
+        src.group_keys += GROUP_KEY_FACTION_FERA
 
-    // Sect (fall back to independent if none)
-    var/sect = src.sect
+    // Sect: from role, fallback to "Independent"
+    var/sect = role_to_sect(H.mind?.assigned_role)
     if (!sect || sect == "")
         sect = "Independent"
+    src.sect = sect  // keep AboutMe var in sync
+
     var/sect_key = GROUP_KEY_SECT(sect)
     if (GLOB.groups && GLOB.groups[sect_key])
         src.group_keys += sect_key
+    else
+        message_admins("DEBUG: SECT group not found for key: [sect_key]")
 
     // Clan (Kindred only, fallback to Caitiff)
-    var/clan = H.clan.name
+    var/clan = lowertext(trim(H.clan?.name))
+    src.clan = clan // keep AboutMe var in sync
     var/clan_key = GROUP_KEY_CLAN(clan)
+    if (!(clan_key in GLOB.groups))
+        message_admins("DEBUG: Clan key [clan_key] not in GLOB.groups!")
     if (GLOB.groups && GLOB.groups[clan_key])
         src.group_keys += clan_key
     else if (GLOB.groups && GLOB.groups[GROUP_KEY_CLAN_CAITIF])
         src.group_keys += GROUP_KEY_CLAN_CAITIF
+    else
+        message_admins("DEBUG: CLAN group not found for clan_key or CAITIF")
 
-    // Tribe (Fera/Garou only, fallback to Ronin)
-    var/tribe = owner.auspice.tribe.name
+    // Tribe (Garou/Fera only, fallback to Ronin)
+    var/tribe = H.auspice?.tribe?.name || ""
+    src.tribe = tribe // keep AboutMe var in sync
     if (tribe != "")
         var/tribe_key = GROUP_KEY_TRIBE(tribe)
         if (GLOB.groups && GLOB.groups[tribe_key])
             src.group_keys += tribe_key
         else if (GLOB.groups && GLOB.groups[GROUP_KEY_TRIBE_RONIN])
             src.group_keys += GROUP_KEY_TRIBE_RONIN
+        else
+            message_admins("DEBUG: TRIBE group not found for tribe_key or RONIN")
 
-    // Optional: organizations, parties, etc., using src.organization, src.parties, etc.
+// Remove from groups we no longer belong to
+    if (!islist(src.current_groups)) src.current_groups = list()
+    for (var/gkey in src.current_groups)
+        if (!(gkey in src.group_keys) && GLOB.groups && (gkey in GLOB.groups))
+            var/datum/group/G = GLOB.groups[gkey]
+            if (istype(G, /datum/group))
+                G.remove_member(owner)
 
-    // Debug!
-    message_admins("<span class='notice'>assign_groups() FINAL: [json_encode(src.group_keys, TRUE)]</span>")
+    for (var/gkey in src.group_keys)
+        if (GLOB.groups && (gkey in GLOB.groups))
+            var/datum/group/G = GLOB.groups[gkey]
+            if (istype(G, /datum/group))
+                G.add_member(owner) // owner is the mob reference
+                G.generate_member_relationships()
+
+    src.current_groups = src.group_keys.Copy()
+
+/datum/component/about_me/proc/remove_mob_from_all_groups(mob/living/carbon/human/M) //for disconnecting.
+    for (var/gkey in GLOB.groups)
+        var/datum/group/G = GLOB.groups[gkey]
+        if (istype(G, /datum/group) && (M in G.members))
+            G.remove_member(M)
+
 
 /datum/component/about_me/proc/role_to_sect(role)
     var/_role = lowertext(trim(role))
@@ -52,7 +83,6 @@
         return "Camarilla"
     // fallback:
     return "Independent"
-
 // ---------------------------------------------
 // Premade Groups!
 // ---------------------------------------------
@@ -90,7 +120,6 @@
 	name = "San Francisco"
 	desc = "The city of San Francisco. No matter your story, citizen or visitor, your choices brought you here this night."
 	leader_name = "Government/Mayor/City Council of San Francisco"
-	members = list("(Everyone within the city.)") // Everyone is a member of the city, by default.
 //Factions: These represent mob mentality, for example kindred whispers of sabbat can be updated here. Very Generalized
 //Citizens, all city services fall under this.
 /datum/group/faction/citizen
@@ -98,7 +127,6 @@
     name = "Citizen of San Francisco"
     desc = "You are a just a regular citizen of San Francisco."
     leader_name = "Elected Mayor."
-    members = list("(The Masses.)")
 //Kindred
 /datum/group/faction/kindred
     id = GROUP_KEY_FACTION_KINDRED // Replace with the appropriate key or define GROUP_KEY_FACTION macro elsewhere
@@ -124,45 +152,38 @@
 	name = "Independent"
 	desc = "You are independent, and not aligned with any major sect, for now."
 	leader_name = "You lead your own life, as you will."
-	members = list("(Anyone not aligned with a sect.)")
 //Kindred Sects, set from role
 /datum/group/sect/camarilla
 	id = GROUP_KEY_SECT_CAMARILLA
 	name = "Camarilla"
 	desc = "You are a member of the Camarilla, the largest and most influential sect of Kindred, dedicated to preserving the Traditions, and namely, the Masquerade. You maintain order among kindred."
 	leader_name = "Prince"
-	members = list("(All Camarilla Members.)")
 /datum/group/sect/anarchs
 	id = GROUP_KEY_SECT_ANARCHS
 	name = "Anarch"
 	desc = "You are an Anarch, a member of the Anarch Movement, which opposes the rigid hierarchy of the Camarilla and seeks greater freedom and equality among Kindred."
 	leader_name = "Baron"
-	members = list("(All Anarch Members.)")
 /datum/group/sect/sabbat
 	id = GROUP_KEY_SECT_SABBAT
 	name = "Sabbat"
 	desc = "You are a member of the Sabbat, a sect of Kindred that rejects human morality and embraces their predatory nature, often engaging in violent and ruthless behavior."
 	leader_name = "Ductus"
-	members = list("(All Sabbat Members.)")
 //Fera Sects, set from role
 /datum/group/sect/paintedcity
 	id = GROUP_KEY_SECT_PAINTEDCITY
 	name = "painted city"
 	desc = "You are a member of the painted city."
 	leader_name = "The Spirits?"
-	members = list("(All Fera Kind, whispers between spirits.)")
 /datum/group/sect/amberglade
 	id = GROUP_KEY_SECT_AMBERGLADE
 	name = "amber glade"
 	desc = "You are a member of the amber glade."
 	leader_name = "The Spirits?"
-	members = list("(All Fera Kind, whispers between spirits.)")
 /datum/group/sect/poisonedshore
 	id = GROUP_KEY_SECT_POISONEDSHORE
 	name = "poisoned shore"
 	desc = "You are a member of the poisoned shore."
 	leader_name = "The Spirits?"
-	members = list("(All Fera Kind, whispers between spirits.)")
 //Kindred Clans, set from character
 /datum/group/clan/caitif
     id = GROUP_KEY_CLAN_CAITIF

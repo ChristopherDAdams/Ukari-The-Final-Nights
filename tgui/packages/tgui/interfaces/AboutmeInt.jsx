@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { useBackend, useLocalState } from '../backend';
 import { Section, Tabs, Box, Button, Table, LabeledList } from 'tgui-core/components';
 import { Window } from '../layouts';
@@ -82,11 +83,6 @@ const GROUP_TYPES_UI = [
   { key: 'player_created', label: 'Player Group' },
 ];
 
-// Prettify group types (fallback for custom types)
-const prettifyGroupType = type => {
-  const match = GROUP_TYPES_UI.find(x => x.key === type);
-  return match ? match.label : (type ? type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ') : '');
-};
 
 const Collapsible = ({ label, open, onClick, children }) => (
   <Box mb={1}>
@@ -202,38 +198,96 @@ const GroupsSection = ({ groups = {}, act }) => {
   );
 };
 
-const RelationshipsSection = ({ relationships = [], act }) => {
-  const rels = Array.isArray(relationships) ? relationships : [];
+const GROUP_TYPES_ORDER = [
+  "city", "faction", "sect", "clan", "tribe", "organization", "party"
+];
+
+const prettifyGroupType = type =>
+  (type ? type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ') : 'Other');
+
+function strengthDescriptor(rel) {
+  const strength = rel.strength ?? 0;
+  let color = "#bbb";
+  if (strength >= 75) color = "#33ff00ff";
+  else if (strength >= 50) color = "#8dbb36ff";
+  else if (strength > 0) color = "#d9e666ff";
+  else if (strength === 0) color = "#ffffffff";
+  else if (strength < 0) color = "#e40000ff";
+  else color = "#d00";
+  return (
+    <span style={{ color, fontWeight: 600 }}>
+      {strength}
+    </span>
+  );
+}
+
+const CollapsibleRelationship = ({ rel, open, onClick, act }) => (
+  <Box mb={1} style={{ border: '1px solid #333', borderRadius: 6, padding: 8 }}>
+    <Box style={{ cursor: 'pointer', fontWeight: 'bold' }} onClick={onClick} underline>
+      {open ? '▼' : '►'} {rel.name || rel.id}
+      <span style={{ fontWeight: 'normal', color: '#bbb' }}> ({prettifyGroupType(rel.relationship_type)})</span>
+      <span style={{ float: 'right', fontWeight: 'bold' }}>{strengthDescriptor(rel)}</span>
+    </Box>
+    {open && (
+      <Box mt={1}>
+        {rel.desc && <Box mb={1} italic>{rel.desc}</Box>}
+        <Box mt={1}>
+          <Button icon="edit" content="Edit" onClick={() => act('edit_relationship', { id: rel.id })} mr={1} />
+          <Button icon="trash" color="bad" content="Delete" onClick={() => act('delete_relationship', { id: rel.id })} />
+        </Box>
+      </Box>
+    )}
+  </Box>
+);
+
+export const RelationshipsSection = ({ relationships = [], act }) => {
+  let relArray = Array.isArray(relationships)
+    ? relationships
+    : (relationships && typeof relationships === 'object')
+      ? Object.values(relationships).flat()
+      : [];
+
+  // Sort by relationship_type (groups first, then others)
+  const typeOrder = [
+    "city", "faction", "sect", "clan", "tribe", "organization", "party"
+  ];
+  relArray.sort((a, b) => {
+    const aIdx = typeOrder.indexOf(a.relationship_type);
+    const bIdx = typeOrder.indexOf(b.relationship_type);
+    if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+    if (aIdx !== -1) return -1;
+    if (bIdx !== -1) return 1;
+    // If both not found, sort alphabetically by type then name
+    return (a.relationship_type || '').localeCompare(b.relationship_type || '') ||
+            (a.name || '').localeCompare(b.name || '');
+  });
+
+  const [openIdx, setOpenIdx] = useState(null);
+
   return (
     <Section title="Relationships">
-      <Button icon="plus" content="New Relationship" onClick={() => act('create_relationship')} mb={1} />
-      {rels.length ? (
-        <Table>
-          <Table.Row header>
-            <Table.Cell>Group</Table.Cell>
-            <Table.Cell>Type</Table.Cell>
-            <Table.Cell>Strength</Table.Cell>
-            <Table.Cell />
-          </Table.Row>
-          {rels.map((rel, i) => (
-            <Table.Row key={rel.id || i}>
-              <Table.Cell bold>
-                {rel.icon && <img src={rel.icon} alt="" style={{ width: 18, marginRight: 8, verticalAlign: 'middle' }} />}
-                {rel.name}
-              </Table.Cell>
-              <Table.Cell>{rel.relationship_type}</Table.Cell>
-              <Table.Cell>{rel.strength || "—"}</Table.Cell>
-              <Table.Cell>
-                <Button icon="edit" tooltip="Edit" onClick={() => act('edit_relationship', { id: rel.id })} />
-                <Button icon="trash" color="bad" tooltip="Delete" onClick={() => act('delete_relationship', { id: rel.id })} />
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table>
+      {relArray.length ? (
+        relArray.map((rel, i) =>
+          <CollapsibleRelationship
+            key={rel.id || i}
+            rel={rel}
+            open={openIdx === i}
+            onClick={() => setOpenIdx(openIdx === i ? null : i)}
+            act={act}
+          />
+        )
       ) : <Box italic>No relationships defined.</Box>}
+      <Box mt={2}>
+        <Button icon="plus" content="New Relationship" onClick={() => act('create_relationship')} />
+      </Box>
     </Section>
   );
 };
+
+
+
+
+
 
 const ChronicleSection = ({ chronicleEvents = [], act }) => {
   const events = Array.isArray(chronicleEvents) ? chronicleEvents : [];

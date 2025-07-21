@@ -1,4 +1,4 @@
-//This simply sets up the character's personal TGUI display.
+//This simply sets up the character's personal TGUI display. Once, then its gone. Used for loading in-round changed information.
 /datum/component/about_me/ui_state(mob/user)
     return GLOB.always_state
 
@@ -9,16 +9,18 @@
     return list()
 
 /datum/component/about_me/ui_interact(mob/user, datum/tgui/ui)
+    if (!about_me_ui_opened) // Only assign groups when the UI is opened.
+        assign_groups()
+        about_me_ui_opened = TRUE
     ui = SStgui.try_update_ui(user, src, ui)
-    if(!ui)
+    if (!ui)
         ui = new(user, src, "AboutmeInt")
         ui.open()
 
-//Saves on Close.
 /datum/component/about_me/ui_close(mob/user)
-	. = ..()
-
-	message_admins("[src]: ui_close() — about_me data saved for [owner?.ckey].")
+    . = ..()
+    assign_groups()
+    about_me_ui_opened = FALSE // Mark that UI is now closed
 
 /datum/action/about_me
 	name = "About Me"

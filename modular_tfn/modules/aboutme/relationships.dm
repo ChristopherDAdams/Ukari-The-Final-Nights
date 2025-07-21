@@ -1,6 +1,7 @@
 
 /datum/relationships
 	var/id
+	var/name
 	var/relationship_type = REL_TYPE_ACQUAINTANCE
 	var/desc = "No description yet."
 	var/strength = 0 // -100 to +100

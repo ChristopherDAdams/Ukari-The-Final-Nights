@@ -5,23 +5,43 @@
 
 /datum/component/about_me
     var/mob/living/carbon/human/owner
-    // Only dynamic data that persists in the component
+    // Core AboutMe group assignment keys
+    var/role = ""
+    var/species = ""
     var/sect = ""
+    var/faction = ""
+    var/tribe = ""
+    var/clan = ""
+    var/org = ""
+    var/party = ""
+    // Dynamic data
     var/list/memories_all = list()
     var/list/relationships_all = list()
     var/list/chronicles_all = list()
     var/list/group_keys = list()
+    var/list/current_groups = list() //This is their current keys, for the round, if they got kicked out in this round, or left, etc.
+    var/about_me_ui_opened = FALSE //Is the player doing stuff in here? If so, wait a sec.
+
 
 /datum/component/about_me/Initialize()
     . = ..()
     if (ismob(parent) && istype(parent, /mob/living/carbon/human))
         owner = parent
         GLOB.aboutme_components[owner.ckey] = src
-        assign_groups()
         var/datum/action/about_me/about_me = new(parent)
         about_me.Grant(parent)
 
 /datum/component/about_me/proc/get_full_payload()
+    assign_groups()
+    var/mob/living/carbon/human/H = owner
+    // Keep all assignment keys in sync for debug, future editing, or assignment.
+    src.role    = ""
+    src.species = ""
+    src.clan    = ""
+    src.sect    = ""
+    src.faction = ""
+    src.tribe   = ""
+
     var/list/general = list(
         "name" = "Unknown",
         "species" = "Unknown",
@@ -37,14 +57,33 @@
         "masquerade" = "Unknown",
         "humanity" = "Unknown",
         "disciplines" = list(),
-        "tribe" = "Unknown"
+        "tribe" = "Unknown",
+        "faction" = "Unknown",
+        "sect" = "Unknown"
     )
 
-    if (istype(owner, /mob/living/carbon/human))
-        var/mob/living/carbon/human/H = owner
+    if (istype(H, /mob/living/carbon/human))
+        // Assign AboutMe key strings for later use
+        src.role    = H.mind?.assigned_role      || ""
+        src.species = H.dna?.species?.name       || ""
+        src.clan    = H.clan?.name               || ""
+        src.tribe   = H.auspice?.tribe?.name     || ""
+        // Faction assignment
+        if (iskindred(H))
+            src.faction = "Kindred"
+        else if (isgarou(H))
+            src.faction = "Fera"
+        else
+            src.faction = "Unknowing"
+        // Sect assignment based on role
+        src.sect = role_to_sect(src.role)
+        if (!src.sect || src.sect == "")
+            src.sect = "Independent"
+
+        // Fill out the general info for the UI
         general["name"] = H.real_name || "Unknown"
-        general["species"] = iskindred(H) ? "Kindred" : isgarou(H) ? "Fera" : ishuman(H) ? "Human" : "Unknown"
-        general["role"] = H.mind?.assigned_role || "Unknown"
+        general["species"] = src.species || "Unknown"
+        general["role"] = src.role || "Unknown"
         general["special_role"] = H.mind?.special_role
         general["regnant"] = H.mind?.enslaved_to ? "[H.mind.enslaved_to]" : null
         general["stats"] = list(
@@ -56,7 +95,8 @@
             "Lockpicking" = H.lockpicking + H.additional_lockpicking,
             "Athletics" = H.athletics + H.additional_athletics
         )
-        // Kindred details
+
+        // Fill out the species info for the UI
         if (iskindred(H))
             var/datum/species/kindred/K = H.dna?.species
             var/list/discipline_list = list()
@@ -68,33 +108,82 @@
                             "level" = D.level,
                             "desc" = D.desc || ""
                         ))
-            species["clan"] = H.clan.name || "Unknown"
-            species["generation"] = H.generation || "Unknown"
-            species["masquerade"] = !isnull(H.masquerade) ? H.masquerade : "0"
-            species["humanity"] = H.morality_path?.score || "Unknown"
+            species["clan"]        = src.clan || "Unknown"
+            species["generation"]  = H.generation || "Unknown"
+            species["masquerade"]  = !isnull(H.masquerade) ? H.masquerade : "0"
+            species["humanity"]    = H.morality_path?.score || "Unknown"
             species["disciplines"] = discipline_list
-        // Garou details
+            species["faction"]     = src.faction
+            species["sect"]        = src.sect
         else if (isgarou(H))
             var/datum/garou_tribe/gtribe = H.auspice?.tribe
-            species["tribe"] = gtribe?.name || "Unknown"
-        // If neither, leave defaults above.
-	//Uses keys to know what to display from the ssrpmanagement subsystem.
-	//NO DUPLICATE groups relationships, memories, or chronicles. Data effecient.
-    var/list/group_objects = export_group_payload()      ; if (!islist(group_objects)) group_objects = list()
-    var/list/relationships = export_relationships()      ; if (!islist(relationships)) relationships = list()
-    var/list/memories = export_memory()                  ; if (!islist(memories)) memories = list()
-    var/list/chronicle = export_chronicle()              ; if (!islist(chronicle)) chronicle = list()
+            species["tribe"]     = src.tribe || gtribe?.name || "Unknown"
+            species["faction"]   = src.faction
+            species["sect"]      = src.sect
+        else
+            // Default fallback for mortals/unknowns
+            species["faction"] = src.faction
+            species["sect"]    = src.sect
 
+    // --- Standard group/memory/relationship export logic ---
+    var/list/group_objects = export_group_payload();    if (!islist(group_objects)) group_objects = list()
+    var/list/relationships = export_relationships();    if (!islist(relationships)) relationships = list()
+    var/list/memories      = export_memory();           if (!islist(memories)) memories = list()
+    var/list/chronicle     = export_chronicle();        if (!islist(chronicle)) chronicle = list()
+
+    // --- Return the AboutMe payload ---
     return list(
         "overview" = list(
             "general" = general,
             "species" = species
         ),
-        "groups" = group_objects,
+        "groups"        = group_objects,
         "relationships" = relationships,
-        "memories" = memories,
-        "chronicle" = chronicle
+        "memories"      = memories,
+        "chronicle"     = chronicle
     )
+
+//relationships.
+/datum/component/about_me/proc/AddRelationship(target, datum/relationships/R)
+    if (!R || !R.id || !R.relationship_type) return
+    // Ignore system/mutual ("@"-prefixed) relationships if you wish:
+    if (copytext(R.id, 1, 2) == "@")
+        return
+
+    if (!islist(relationships_all)) relationships_all = list()
+    for (var/datum/relationships/EXIST in relationships_all)
+        if (EXIST.id == R.id && EXIST.relationship_type == R.relationship_type)
+            // Update fields if you want (optional)
+            EXIST.strength = R.strength
+            EXIST.desc = R.desc
+            EXIST.visible = R.visible
+            return // Already present (now updated)
+    relationships_all += R
+
+
+
+/datum/component/about_me/proc/GetRelationshipTo(target, group_type)
+    if (!islist(relationships_all)) return null
+
+    var/tkey = null
+
+    if (ismob(target))
+        var/mob/M = target
+        tkey = M.ckey
+    else if (istype(target, /datum/group))
+        var/datum/group/G = target
+        tkey = G.id
+    else
+        return null
+
+    for (var/datum/relationships/R in relationships_all)
+        if (R.relationship_type == group_type && R.id == "[owner.ckey]_[tkey]_[group_type]")
+            return R
+    return null
+
+
+
+
 
 // --- Debug Verb ---
 /client/verb/DebugAboutMePayload()
@@ -105,7 +194,8 @@
     var/datum/component/about_me/C = H.GetComponent(/datum/component/about_me)
     if (!C) return
     to_chat(src, "<span class='notice'>[json_encode(C.get_full_payload(), TRUE)]</span>")
-//Data packaging. Takes datums down to lists of strings and keys so the UI can use it.
+
+//Data packaging. Takes datums down to lists of strings and packaged keys so the UI can render it.
 //This exports and sorts specific data for the about me tgui, to format it so the tgui can read it.
 /datum/component/about_me/proc/export_memory()
     var/list/exported = list()
@@ -121,19 +211,23 @@
             var/datum/chronicle/E = event
             events += list(E.GetFormattedUI())
     return events
+
 /datum/component/about_me/proc/export_relationships()
     var/list/exported = list()
-    for (var/G in relationships_all)
-        if (!istype(G, /datum/group)) continue
-        var/datum/group/group = G
+    for (var/datum/relationships/R in relationships_all)
         exported += list(list(
-            "id" = group.id,
-            "name" = group.name,
-            "relationship_type" = group.get_relationship_type(owner), // e.g. "Clan", "Sect", "Coterie"
-            "strength" = "Member", // Or whatever logic you want
+            "id" = R.id,
+            "name" = R.name,
+            "relationship_type" = R.relationship_type,
+            "desc" = R.desc,
+            "strength" = R.strength,
+            "visible" = R.visible,
+            "mutual" = R.mutual,
         ))
-    // In the future, merge relationships_all as well!
     return exported
+
+
+
 /datum/component/about_me/proc/export_group_payload()
     var/list/group_objects = list()
     for (var/gkey in group_keys)
