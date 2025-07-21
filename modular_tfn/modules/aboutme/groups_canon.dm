@@ -1,42 +1,57 @@
 //This sets up canon groups for each component when its initialized.
 //Based on character information in the component.
 /datum/component/about_me/proc/assign_groups()
-    src.group_keys = list() // Reset
+    src.group_keys = list()
     var/mob/living/carbon/human/H = owner
     if (!H) return
 
-    // --- City (everyone is in the city)
+    // Always city group
     if (GLOB.groups && GLOB.groups[GROUP_KEY_CITY])
         src.group_keys += GROUP_KEY_CITY
 
-    // Faction
-    if (iskindred(owner))
+    if (H.dna?.species.name == "Kindred")
         src.group_keys += GROUP_KEY_FACTION_KINDRED
-    if (isgarou(owner) == "Garou")
+    if (H.dna?.species.name == "Werewolf")
         src.group_keys += GROUP_KEY_FACTION_FERA
-    if (ishuman(owner) == "Human")
+    if (ishuman(H))
         src.group_keys += GROUP_KEY_FACTION_UNKNOWING
 
-    // --- Sect (Camarilla, Anarchs, etc)
-    if (src.sect)
-        var/sect_key = GROUP_KEY_SECT(src.sect)
-        if (GLOB.groups && GLOB.groups[sect_key])
-            src.group_keys += sect_key
+    // Sect (fall back to independent if none)
+    var/sect = src.sect
+    if (!sect || sect == "")
+        sect = "Independent"
+    var/sect_key = GROUP_KEY_SECT(sect)
+    if (GLOB.groups && GLOB.groups[sect_key])
+        src.group_keys += sect_key
 
-    // --- Clan (Kindred only)
-    if (iskindred(H))
-        var/datum/species/kindred/K = H.dna?.species
-        var/datum/vampireclane/Kclan = K?.clane
-        var/clan_key = GROUP_KEY_CLAN(Kclan)
-        if (GLOB.groups && GLOB.groups[clan_key])
-            src.group_keys += clan_key
+    // Clan (Kindred only, fallback to Caitiff)
+    var/clan = H.clan.name
+    var/clan_key = GROUP_KEY_CLAN(clan)
+    if (GLOB.groups && GLOB.groups[clan_key])
+        src.group_keys += clan_key
+    else if (GLOB.groups && GLOB.groups[GROUP_KEY_CLAN_CAITIF])
+        src.group_keys += GROUP_KEY_CLAN_CAITIF
 
-    // --- Tribe (Garou/Fera only)
-    if (isgarou(H))
-        var/mob/living/carbon/C = H
-        var/tribe_key = GROUP_KEY_TRIBE(C.auspice.tribe.name) //(This is... ugh.)
+    // Tribe (Fera/Garou only, fallback to Ronin)
+    var/tribe = owner.auspice.tribe.name
+    if (tribe != "")
+        var/tribe_key = GROUP_KEY_TRIBE(tribe)
         if (GLOB.groups && GLOB.groups[tribe_key])
             src.group_keys += tribe_key
+        else if (GLOB.groups && GLOB.groups[GROUP_KEY_TRIBE_RONIN])
+            src.group_keys += GROUP_KEY_TRIBE_RONIN
+
+    // Optional: organizations, parties, etc., using src.organization, src.parties, etc.
+
+    // Debug!
+    message_admins("<span class='notice'>assign_groups() FINAL: [json_encode(src.group_keys, TRUE)]</span>")
+
+/datum/component/about_me/proc/role_to_sect(role)
+    var/_role = lowertext(trim(role))
+    if (findtext(_role, "prince"))
+        return "Camarilla"
+    // fallback:
+    return "Independent"
 
 // ---------------------------------------------
 // Premade Groups!

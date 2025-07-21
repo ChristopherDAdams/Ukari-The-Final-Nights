@@ -113,7 +113,6 @@
 #define GROUP_TAG_GAROU         "garou"
 #define GROUP_TAG_FERA          "fera"
 #define GROUP_TAG_WRAITH        "wraith"
-#define GROUP_TAG_MAGE          "mage"
 #define GROUP_TAG_HUNTER        "hunter"
 #define GROUP_TAG_MORTAL        "mortal"
 // --- Secret/Special Access ---

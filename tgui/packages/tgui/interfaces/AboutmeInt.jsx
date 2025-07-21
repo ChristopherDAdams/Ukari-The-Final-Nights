@@ -71,14 +71,18 @@ const OverviewSection = ({ overview = {}, status, alignment }) => {
     </Section>
   );
 };
-
 const GROUP_TYPES_UI = [
-  { key: 'city', label: 'City' }, { key: 'faction', label: 'Faction' },
-  { key: 'sect', label: 'Sect' }, { key: 'clan', label: 'Clan' },
-  { key: 'tribe', label: 'Tribe' }, { key: 'organization', label: 'Organization (1000 XP)' },
-  { key: 'party', label: 'Coterie/Party (500 XP)' }, { key: 'player_created', label: 'Player Group' },
+  { key: 'city', label: 'City' },
+  { key: 'faction', label: 'Faction' },
+  { key: 'sect', label: 'Sect' },
+  { key: 'clan', label: 'Clan' },
+  { key: 'tribe', label: 'Tribe' },
+  { key: 'organization', label: 'Organization (1000 XP)' },
+  { key: 'party', label: 'Coterie/Party (500 XP)' },
+  { key: 'player_created', label: 'Player Group' },
 ];
 
+// Prettify group types (fallback for custom types)
 const prettifyGroupType = type => {
   const match = GROUP_TYPES_UI.find(x => x.key === type);
   return match ? match.label : (type ? type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ') : '');
@@ -93,7 +97,7 @@ const Collapsible = ({ label, open, onClick, children }) => (
   </Box>
 );
 
-const groupByType = (groupList) => {
+const groupByType = groupList => {
   const byType = {};
   (Array.isArray(groupList) ? groupList : []).forEach(group => {
     if (group?.type) (byType[group.type] ??= []).push(group);
@@ -103,57 +107,96 @@ const groupByType = (groupList) => {
 
 const GroupsSection = ({ groups = {}, act }) => {
   const [openGroup, setOpenGroup] = useLocalState('aboutme_groupopen', '');
-  // Accepts array, object, or {group_objects: obj}
+  // Accepts: array, array-of-arrays, or {group_objects: {type: [groups...]}}
   let groupList = [];
-  if (Array.isArray(groups)) groupList = groups;
-  else if (Array.isArray(groups.group_objects)) groupList = groups.group_objects;
-  else if (groups && typeof groups.group_objects === 'object')
+  if (Array.isArray(groups)) {
+    // Flat array of groups
+    groupList = groups;
+  } else if (groups && typeof groups.group_objects === 'object') {
+    // { group_objects: {type: [groups]} }
     groupList = Object.values(groups.group_objects).flat();
+  } else if (typeof groups === 'object') {
+    // Possibly just a {type: [groups]} map
+    groupList = Object.values(groups).flat();
+  }
   const grouped = groupByType(groupList);
 
-  const renderGroups = (typeKeys) =>
-    typeKeys.map(key => {
-      const gList = grouped[key] || [];
-      return gList.length ? (
-        <Collapsible
-          key={key}
-          label={prettifyGroupType(key)}
-          open={openGroup === key}
-          onClick={() => setOpenGroup(openGroup === key ? '' : key)}
-        >
-          {gList.map((group, i) =>
-            <Box key={group.id || i} mb={2} style={{ border: '1px solid #333', borderRadius: 6, padding: 8 }}>
-              <Box bold mb={1}>
-                {group.icon && <img src={group.icon} alt="icon" style={{ height: 24, verticalAlign: 'middle', marginRight: 6 }} />}
-                {group.name}
-              </Box>
-              <Box mb={1} italic>{group.desc}</Box>
-              <Box mb={1}><b>Type:</b> {prettifyGroupType(group.type)}</Box>
-              <Box mb={1}><b>Leader:</b> {group.leader}</Box>
-              <Box mb={1}><b>Members:</b> {Array.isArray(group.members) && group.members.length ? group.members.join(', ') : 'None'}</Box>
-              {group.member_roles && Object.keys(group.member_roles).length > 0 && (
-                <Box mb={1}><b>Member Roles:</b> {Object.entries(group.member_roles).map(([ckey, role]) => `${ckey}: ${role}`).join(', ')}</Box>
-              )}
-              <Button icon="edit" content="Edit" onClick={() => act('edit_group', { id: group.id })} mr={1} />
-              <Button icon="trash" color="bad" content="Delete" onClick={() => act('delete_group', { id: group.id })} />
+  // Render all standard group types (with labels in preferred order)
+  const standardRendered = GROUP_TYPES_UI.map(({ key, label }) => {
+    const gList = grouped[key] || [];
+    return gList.length ? (
+      <Collapsible
+        key={key}
+        label={prettifyGroupType(key)}
+        open={openGroup === key}
+        onClick={() => setOpenGroup(openGroup === key ? '' : key)}
+      >
+        {gList.map((group, i) => (
+          <Box key={group.id || i} mb={2} style={{ border: '1px solid #333', borderRadius: 6, padding: 8 }}>
+            <Box bold mb={1}>
+              {group.icon && <img src={group.icon} alt="icon" style={{ height: 24, verticalAlign: 'middle', marginRight: 6 }} />}
+              {group.name}
             </Box>
-          )}
-        </Collapsible>
-      ) : null;
-    });
+            <Box mb={1} italic>{group.desc}</Box>
+            <Box mb={1}><b>Type:</b> {prettifyGroupType(group.type)}</Box>
+            <Box mb={1}><b>Leader:</b> {group.leader}</Box>
+            <Box mb={1}><b>Members:</b> {Array.isArray(group.members) && group.members.length ? group.members.join(', ') : 'None'}</Box>
+            {group.member_roles && Object.keys(group.member_roles).length > 0 && (
+              <Box mb={1}><b>Member Roles:</b> {Object.entries(group.member_roles).map(([ckey, role]) => `${ckey}: ${role}`).join(', ')}</Box>
+            )}
+            <Button icon="edit" content="Edit" onClick={() => act('edit_group', { id: group.id })} mr={1} />
+            <Button icon="trash" color="bad" content="Delete" onClick={() => act('delete_group', { id: group.id })} />
+          </Box>
+        ))}
+      </Collapsible>
+    ) : null;
+  });
 
+  // Render any group types not in the preferred list (custom types, etc)
   const knownKeys = GROUP_TYPES_UI.map(x => x.key);
   const unknownTypes = Object.keys(grouped).filter(k => !knownKeys.includes(k));
+  const unknownRendered = unknownTypes.map(key => {
+    const gList = grouped[key] || [];
+    return gList.length ? (
+      <Collapsible
+        key={key}
+        label={prettifyGroupType(key)}
+        open={openGroup === key}
+        onClick={() => setOpenGroup(openGroup === key ? '' : key)}
+      >
+        {gList.map((group, i) => (
+          <Box key={group.id || i} mb={2} style={{ border: '1px solid #333', borderRadius: 6, padding: 8 }}>
+            <Box bold mb={1}>
+              {group.icon && <img src={group.icon} alt="icon" style={{ height: 24, verticalAlign: 'middle', marginRight: 6 }} />}
+              {group.name}
+            </Box>
+            <Box mb={1} italic>{group.desc}</Box>
+            <Box mb={1}><b>Type:</b> {prettifyGroupType(group.type)}</Box>
+            <Box mb={1}><b>Leader:</b> {group.leader}</Box>
+            <Box mb={1}><b>Members:</b> {Array.isArray(group.members) && group.members.length ? group.members.join(', ') : 'None'}</Box>
+            {group.member_roles && Object.keys(group.member_roles).length > 0 && (
+              <Box mb={1}><b>Member Roles:</b> {Object.entries(group.member_roles).map(([ckey, role]) => `${ckey}: ${role}`).join(', ')}</Box>
+            )}
+            <Button icon="edit" content="Edit" onClick={() => act('edit_group', { id: group.id })} mr={1} />
+            <Button icon="trash" color="bad" content="Delete" onClick={() => act('delete_group', { id: group.id })} />
+          </Box>
+        ))}
+      </Collapsible>
+    ) : null;
+  });
+
   const noGroups = !groupList.length;
 
   return (
     <Section title="Groups">
-      <Box mb={1}><Button icon="plus" content="Create Group" onClick={() => act('create_group')} /></Box>
-      {renderGroups(knownKeys)}
-      {renderGroups(unknownTypes)}
+      <Box mb={1}>
+        <Button icon="plus" content="Create Group" onClick={() => act('create_group')} />
+      </Box>
+      {standardRendered}
+      {unknownRendered}
       {noGroups && <Box italic>No groups joined.</Box>}
       <Box mt={3} italic>
-        Organization creation costs <b>1000 XP</b>. Party/Coterie creation costs <b>500 XP</b>.
+        Player Made Groups, Coteries/Squad/Organizations are on the way!
       </Box>
     </Section>
   );
@@ -295,26 +338,33 @@ const MemoriesTabsSection = ({ memories = {}, act }) => {
 // ====================
 export const AboutmeInt = (props, context) => {
   const { data = {}, act } = useBackend(context);
-  // Defensive parsing everywhere
-  const overview = data.overview || {};
-  const groups = data.groups || {};
+
+  // Defensive everywhere!
+  const overview = data.overview ?? {};
+  const groups = data.groups ?? {};
+
+  // Relationships: array or .group_affiliations fallback
   const relationships = Array.isArray(data.relationships)
     ? data.relationships
-    : (data.relationships?.group_affiliations || []);
+    : (data.relationships?.group_affiliations ?? []);
+
+  // Chronicle: array or .events fallback
   const chronicleEvents = Array.isArray(data.chronicle)
     ? data.chronicle
-    : (data.chronicle?.events || []);
-  const memories = data.memories
-    ? data.memories
-    : {
-        memories_all: data.memories_all || [],
-        background: data.background || [],
-        current: data.current || [],
-        recent: data.recent || [],
-        goal: data.goal || [],
-        secret: data.secret || [],
-        reputation: data.reputation || [],
-      };
+    : (data.chronicle?.events ?? []);
+
+  // Memories: canonical object, fallback to categories, fallback to []
+  const memories = Array.isArray(data.memories)
+    ? { memories_all: data.memories }
+    : (data.memories ?? {
+        memories_all: data.memories_all ?? [],
+        background: data.background ?? [],
+        current: data.current ?? [],
+        recent: data.recent ?? [],
+        goal: data.goal ?? [],
+        secret: data.secret ?? [],
+        reputation: data.reputation ?? [],
+      });
 
   const [tab, setTab] = useLocalState('aboutme_tab', 'overview');
 
@@ -359,6 +409,7 @@ export const AboutmeInt = (props, context) => {
     </Window>
   );
 };
+
 
 AboutmeInt.displayName = 'AboutmeInt';
 AboutmeInt.defaultProps = {
