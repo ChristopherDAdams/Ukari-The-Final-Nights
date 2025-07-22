@@ -110,7 +110,7 @@
         "Back"
     ))
     if(isnull(choice) || choice == "Back")
-        src.back_to("prompt_edit_overview", user)
+        src.back_to("prompt_manage_groups", user)
         return
     message_admins("[user] AboutMe: Group Join/Leave: [choice]")
 
@@ -127,7 +127,7 @@
         "Back"
     ))
     if(isnull(choice) || choice == "Back")
-        src.back_to("prompt_edit_overview", user)
+        src.back_to("prompt_manage_groups", user)
         return
     message_admins("[user] AboutMe: Group Admin Action: [choice]")
 
@@ -163,7 +163,7 @@
         "Back"
     ))
     if(isnull(choice) || choice == "Back")
-        src.back_to("prompt_edit_overview", user)
+        src.back_to("prompt_change_relationship", user)
         return
     message_admins("[user] AboutMe: Relationship Manage Action: [choice]")
 
@@ -223,7 +223,7 @@
         "Back"
     ))
     if(isnull(choice) || choice == "Back")
-        src.back_to("prompt_edit_overview", user)
+        src.back_to("prompt_manage_memories", user)
         return
     message_admins("[user] AboutMe: Memory Edit/Delete Action: [choice]")
 
