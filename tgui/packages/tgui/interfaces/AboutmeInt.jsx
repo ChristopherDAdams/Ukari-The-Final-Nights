@@ -1,3 +1,9 @@
+// ====================
+// AboutMeInt.jsx - Annotated
+// ====================
+// This file defines the main About Me interface for the player.
+// Each major section/tab is separated and commented.
+
 import React, { useState } from 'react';
 import { useBackend, useLocalState } from '../backend';
 import { Section, Tabs, Box, Button, Table, LabeledList } from 'tgui-core/components';
@@ -6,7 +12,8 @@ import { Window } from '../layouts';
 // ====================
 // Overview Tab Section
 // ====================
-const OverviewSection = ({ overview = {}, status, alignment }) => {
+// Displays high-level info: name, species, role, clan, stats, disciplines, regnant/bond info, etc.
+const OverviewSection = ({ overview = {}, status, alignment, act }) => {
   const { general = {}, species = {} } = overview ?? {};
   const {
     name, role, special_role, species: speciesName, regnant, regnant_clan, stats = {},
@@ -18,8 +25,14 @@ const OverviewSection = ({ overview = {}, status, alignment }) => {
   const displayOrUnknown = val =>
     val === undefined || val === null || val === "" ? "Unknown" : val;
 
+  // Collapsible toggles for stats and disciplines
+  const [statsOpen, setStatsOpen] = useState(false);
+  const [disciplinesOpen, setDisciplinesOpen] = useState(false);
+
+
   return (
     <Section fill title="Overview">
+      <Button icon="edit" content="Edit Overview" onClick={() => act('edit_overview')} mb={2} />
       <LabeledList>
         <LabeledList.Item label="Name">{displayOrUnknown(name)}</LabeledList.Item>
         <LabeledList.Item label="Species">{displayOrUnknown(speciesName)}</LabeledList.Item>
@@ -34,34 +47,54 @@ const OverviewSection = ({ overview = {}, status, alignment }) => {
         <LabeledList.Item label="Humanity">{displayOrUnknown(humanity)}</LabeledList.Item>
         <LabeledList.Item label="Status">{displayOrUnknown(status)}</LabeledList.Item>
         <LabeledList.Item label="Alignment">{displayOrUnknown(alignment)}</LabeledList.Item>
+        {/* More overview fields can be added here as needed */}
       </LabeledList>
 
-      {stats && Object.keys(stats).length > 0 && (
-        <>
-          <Box mt={2} mb={1} bold underline>Stats</Box>
+      {/* Collapsible Stats */}
+      <Box mt={2}>
+        <Box
+          bold
+          underline
+          style={{ cursor: 'pointer', userSelect: 'none' }}
+          onClick={() => setStatsOpen(o => !o)}
+        >
+          {statsOpen ? '▼' : '►'} Stats
+        </Box>
+        {statsOpen && (
           <LabeledList>
             {Object.entries(stats).map(([k, v], i) =>
               <LabeledList.Item key={i} label={k}>{v}</LabeledList.Item>
             )}
           </LabeledList>
-        </>
-      )}
+        )}
+      </Box>
 
-      <Box mt={2} mb={1} bold underline>Disciplines</Box>
-      {Array.isArray(disciplines) && disciplines.length > 0 ? (
-        <Table>
-          {disciplines.map((d, i) =>
-            <Table.Row key={i}>
-              <Table.Cell bold>{d.name}</Table.Cell>
-              <Table.Cell>Lv. {d.level}</Table.Cell>
-              <Table.Cell>{d.desc}</Table.Cell>
-            </Table.Row>
-          )}
-        </Table>
-      ) : (
-        <Box italic>No disciplines known.</Box>
-      )}
+      {/* Collapsible Disciplines */}
+      <Box mt={2}>
+        <Box
+          bold
+          underline
+          style={{ cursor: 'pointer', userSelect: 'none' }}
+          onClick={() => setDisciplinesOpen(o => !o)}
+        >
+          {disciplinesOpen ? '▼' : '►'} Disciplines
+        </Box>
+        {disciplinesOpen && (Array.isArray(disciplines) && disciplines.length > 0 ? (
+          <Table>
+            {disciplines.map((d, i) =>
+              <Table.Row key={i}>
+                <Table.Cell bold>{d.name}</Table.Cell>
+                <Table.Cell>Lv. {d.level}</Table.Cell>
+                <Table.Cell>{d.desc}</Table.Cell>
+              </Table.Row>
+            )}
+          </Table>
+        ) : (
+          <Box italic>No disciplines known.</Box>
+        ))}
+      </Box>
 
+      {/* Bonded/Regnant display */}
       {(regnant || regnant_clan) && (regnant !== "Unknown" || regnant_clan !== "Unknown") && (
         <Box mt={3}>
           <Box bold underline>(Bonded)</Box>
@@ -72,6 +105,45 @@ const OverviewSection = ({ overview = {}, status, alignment }) => {
     </Section>
   );
 };
+
+// ====================
+// CollapsibleCategory & EntryCard
+// ====================
+// Shared utility components for collapsible sections and pretty entry displays (Groups, Relationships, etc.)
+const CollapsibleCategory = ({ label, open, onClick, children }) => (
+  <Box mb={1}>
+    <Box style={{ cursor: 'pointer', fontWeight: 'bold' }} onClick={onClick} underline>
+      {open ? '▼' : '►'} {label}
+    </Box>
+    {open && <Box mt={1}>{children}</Box>}
+  </Box>
+);
+
+const EntryCard = ({ icon, name, subtitle, desc, fields = [], buttons = [], strength }) => (
+  <Box mb={2} style={{ border: '1px solid #333', borderRadius: 6, padding: 8 }}>
+    <Box bold mb={1}>
+      {icon && <img src={icon} alt="icon" style={{ height: 24, verticalAlign: 'middle', marginRight: 6 }} />}
+      {name}
+      {subtitle && <span style={{ color: '#aaa', fontWeight: 400, marginLeft: 8 }}>{subtitle}</span>}
+      {typeof strength === 'number' &&
+        <span style={{ float: 'right', fontWeight: 'bold', color: strength >= 50 ? '#8dbb36ff' : '#bbb' }}>{strength}</span>}
+    </Box>
+    {desc && <Box mb={1} italic>{desc}</Box>}
+    {fields.map(({ label, value }, i) =>
+      <Box mb={1} key={i}><b>{label}:</b> {value}</Box>
+    )}
+    {buttons.length > 0 && (
+      <Box mt={1}>
+        {buttons.map((btn, i) => React.cloneElement(btn, { key: i, mr: 1 }))}
+      </Box>
+    )}
+  </Box>
+);
+
+// ====================
+// Groups Tab Section
+// ====================
+// Shows all groups the character is a member of, grouped by type (city, clan, etc.)
 const GROUP_TYPES_UI = [
   { key: 'city', label: 'City' },
   { key: 'faction', label: 'Faction' },
@@ -83,15 +155,8 @@ const GROUP_TYPES_UI = [
   { key: 'player_created', label: 'Player Group' },
 ];
 
-
-const Collapsible = ({ label, open, onClick, children }) => (
-  <Box mb={1}>
-    <Box style={{ cursor: 'pointer', fontWeight: 'bold' }} onClick={onClick} underline>
-      {open ? '▼' : '►'} {label}
-    </Box>
-    {open && <Box mt={1}>{children}</Box>}
-  </Box>
-);
+const prettifyGroupType = type =>
+  (type ? type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ') : 'Other');
 
 const groupByType = groupList => {
   const byType = {};
@@ -103,90 +168,71 @@ const groupByType = groupList => {
 
 const GroupsSection = ({ groups = {}, act }) => {
   const [openGroup, setOpenGroup] = useLocalState('aboutme_groupopen', '');
-  // Accepts: array, array-of-arrays, or {group_objects: {type: [groups...]}}
   let groupList = [];
-  if (Array.isArray(groups)) {
-    // Flat array of groups
-    groupList = groups;
-  } else if (groups && typeof groups.group_objects === 'object') {
-    // { group_objects: {type: [groups]} }
-    groupList = Object.values(groups.group_objects).flat();
-  } else if (typeof groups === 'object') {
-    // Possibly just a {type: [groups]} map
-    groupList = Object.values(groups).flat();
-  }
+  if (Array.isArray(groups)) groupList = groups;
+  else if (groups?.group_objects) groupList = Object.values(groups.group_objects).flat();
+  else if (typeof groups === 'object') groupList = Object.values(groups).flat();
   const grouped = groupByType(groupList);
-
-  // Render all standard group types (with labels in preferred order)
+  const noGroups = !groupList.length;
+  const knownKeys = GROUP_TYPES_UI.map(x => x.key);
   const standardRendered = GROUP_TYPES_UI.map(({ key, label }) => {
     const gList = grouped[key] || [];
     return gList.length ? (
-      <Collapsible
+      <CollapsibleCategory
         key={key}
-        label={prettifyGroupType(key)}
+        label={label}
         open={openGroup === key}
         onClick={() => setOpenGroup(openGroup === key ? '' : key)}
       >
         {gList.map((group, i) => (
-          <Box key={group.id || i} mb={2} style={{ border: '1px solid #333', borderRadius: 6, padding: 8 }}>
-            <Box bold mb={1}>
-              {group.icon && <img src={group.icon} alt="icon" style={{ height: 24, verticalAlign: 'middle', marginRight: 6 }} />}
-              {group.name}
-            </Box>
-            <Box mb={1} italic>{group.desc}</Box>
-            <Box mb={1}><b>Type:</b> {prettifyGroupType(group.type)}</Box>
-            <Box mb={1}><b>Leader:</b> {group.leader}</Box>
-            <Box mb={1}><b>Members:</b> {Array.isArray(group.members) && group.members.length ? group.members.join(', ') : 'None'}</Box>
-            {group.member_roles && Object.keys(group.member_roles).length > 0 && (
-              <Box mb={1}><b>Member Roles:</b> {Object.entries(group.member_roles).map(([ckey, role]) => `${ckey}: ${role}`).join(', ')}</Box>
-            )}
-            <Button icon="edit" content="Edit" onClick={() => act('edit_group', { id: group.id })} mr={1} />
-            <Button icon="trash" color="bad" content="Delete" onClick={() => act('delete_group', { id: group.id })} />
-          </Box>
+          <EntryCard
+            key={group.id || i}
+            name={group.name}
+            desc={group.desc}
+            subtitle={prettifyGroupType(group.type)}
+            fields={[
+              { label: 'Status', value: group.orders || '"(Words from the leader.)"' },
+              { label: 'Leaders', value: Array.isArray(group.leaders) && group.leaders.length ? group.leaders.join(', ') : (group.leader_name || 'None') },
+              { label: 'Officers', value: Array.isArray(group.officers) && group.officers.length ? group.officers.join(', ') : (group.officer_name || 'None') },
+              { label: 'Members', value: Array.isArray(group.members) && group.members.length ? group.members.join(', ') : 'None' },
+            ]}
+          />
         ))}
-      </Collapsible>
+      </CollapsibleCategory>
     ) : null;
   });
 
-  // Render any group types not in the preferred list (custom types, etc)
-  const knownKeys = GROUP_TYPES_UI.map(x => x.key);
   const unknownTypes = Object.keys(grouped).filter(k => !knownKeys.includes(k));
   const unknownRendered = unknownTypes.map(key => {
     const gList = grouped[key] || [];
     return gList.length ? (
-      <Collapsible
+      <CollapsibleCategory
         key={key}
         label={prettifyGroupType(key)}
         open={openGroup === key}
         onClick={() => setOpenGroup(openGroup === key ? '' : key)}
       >
         {gList.map((group, i) => (
-          <Box key={group.id || i} mb={2} style={{ border: '1px solid #333', borderRadius: 6, padding: 8 }}>
-            <Box bold mb={1}>
-              {group.icon && <img src={group.icon} alt="icon" style={{ height: 24, verticalAlign: 'middle', marginRight: 6 }} />}
-              {group.name}
-            </Box>
-            <Box mb={1} italic>{group.desc}</Box>
-            <Box mb={1}><b>Type:</b> {prettifyGroupType(group.type)}</Box>
-            <Box mb={1}><b>Leader:</b> {group.leader}</Box>
-            <Box mb={1}><b>Members:</b> {Array.isArray(group.members) && group.members.length ? group.members.join(', ') : 'None'}</Box>
-            {group.member_roles && Object.keys(group.member_roles).length > 0 && (
-              <Box mb={1}><b>Member Roles:</b> {Object.entries(group.member_roles).map(([ckey, role]) => `${ckey}: ${role}`).join(', ')}</Box>
-            )}
-            <Button icon="edit" content="Edit" onClick={() => act('edit_group', { id: group.id })} mr={1} />
-            <Button icon="trash" color="bad" content="Delete" onClick={() => act('delete_group', { id: group.id })} />
-          </Box>
+          <EntryCard
+            key={group.id || i}
+            name={group.name}
+            desc={group.desc}
+            subtitle={prettifyGroupType(group.type)}
+            fields={[
+              { label: 'Leaders', value: Array.isArray(group.leaders) && group.leaders.length ? group.leaders.join(', ') : (group.leader_name || 'None') },
+              { label: 'Officers', value: Array.isArray(group.officers) && group.officers.length ? group.officers.join(', ') : (group.officer_name || 'None') },
+              { label: 'Members', value: Array.isArray(group.members) && group.members.length ? group.members.join(', ') : 'None' },
+            ]}
+          />
         ))}
-      </Collapsible>
+      </CollapsibleCategory>
     ) : null;
   });
-
-  const noGroups = !groupList.length;
 
   return (
     <Section title="Groups">
       <Box mb={1}>
-        <Button icon="plus" content="Create Group" onClick={() => act('create_group')} />
+        <Button icon="wrench" content="Manage Groups" onClick={() => act('manage_groups')} mb={2} />
       </Box>
       {standardRendered}
       {unknownRendered}
@@ -198,129 +244,117 @@ const GroupsSection = ({ groups = {}, act }) => {
   );
 };
 
-const GROUP_TYPES_ORDER = [
-  "city", "faction", "sect", "clan", "tribe", "organization", "party"
+// ====================
+// Relationships Tab Section
+// ====================
+const REL_TYPE_UI = [
+  { key: 'city', label: 'City' },
+  { key: 'faction', label: 'Faction' },
+  { key: 'sect', label: 'Sect' },
+  { key: 'clan', label: 'Clan' },
+  { key: 'tribe', label: 'Tribe' },
+  { key: 'organization', label: 'Organization' },
+  { key: 'party', label: 'Coterie/Party' },
 ];
 
-const prettifyGroupType = type =>
-  (type ? type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ') : 'Other');
+const groupRelationshipsByType = relList => {
+  const byType = {};
+  (Array.isArray(relList) ? relList : []).forEach(rel => {
+    const t = rel?.relationship_type || 'other';
+    (byType[t] ??= []).push(rel);
+  });
+  return byType;
+};
 
-function strengthDescriptor(rel) {
-  const strength = rel.strength ?? 0;
-  let color = "#bbb";
-  if (strength >= 75) color = "#33ff00ff";
-  else if (strength >= 50) color = "#8dbb36ff";
-  else if (strength > 0) color = "#d9e666ff";
-  else if (strength === 0) color = "#ffffffff";
-  else if (strength < 0) color = "#e40000ff";
-  else color = "#d00";
-  return (
-    <span style={{ color, fontWeight: 600 }}>
-      {strength}
-    </span>
-  );
-}
+const RelationshipsSection = ({ relationships = [], act }) => {
+  const [openType, setOpenType] = useLocalState('aboutme_reltype_open', '');
+  let relArray = Array.isArray(relationships) ? relationships : [];
 
-const CollapsibleRelationship = ({ rel, open, onClick, act }) => (
-  <Box mb={1} style={{ border: '1px solid #333', borderRadius: 6, padding: 8 }}>
-    <Box style={{ cursor: 'pointer', fontWeight: 'bold' }} onClick={onClick} underline>
-      {open ? '▼' : '►'} {rel.name || rel.id}
-      <span style={{ fontWeight: 'normal', color: '#bbb' }}> ({prettifyGroupType(rel.relationship_type)})</span>
-      <span style={{ float: 'right', fontWeight: 'bold' }}>{strengthDescriptor(rel)}</span>
-    </Box>
-    {open && (
-      <Box mt={1}>
-        {rel.desc && <Box mb={1} italic>{rel.desc}</Box>}
-        <Box mt={1}>
-          <Button icon="edit" content="Edit" onClick={() => act('edit_relationship', { id: rel.id })} mr={1} />
-          <Button icon="trash" color="bad" content="Delete" onClick={() => act('delete_relationship', { id: rel.id })} />
-        </Box>
-      </Box>
-    )}
-  </Box>
-);
+  const grouped = groupRelationshipsByType(relArray);
+  const noRels = !relArray.length;
+  const knownKeys = REL_TYPE_UI.map(x => x.key);
 
-export const RelationshipsSection = ({ relationships = [], act }) => {
-  let relArray = Array.isArray(relationships)
-    ? relationships
-    : (relationships && typeof relationships === 'object')
-      ? Object.values(relationships).flat()
-      : [];
-
-  // Sort by relationship_type (groups first, then others)
-  const typeOrder = [
-    "city", "faction", "sect", "clan", "tribe", "organization", "party"
-  ];
-  relArray.sort((a, b) => {
-    const aIdx = typeOrder.indexOf(a.relationship_type);
-    const bIdx = typeOrder.indexOf(b.relationship_type);
-    if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
-    if (aIdx !== -1) return -1;
-    if (bIdx !== -1) return 1;
-    // If both not found, sort alphabetically by type then name
-    return (a.relationship_type || '').localeCompare(b.relationship_type || '') ||
-            (a.name || '').localeCompare(b.name || '');
+  const standardRendered = REL_TYPE_UI.map(({ key, label }) => {
+    const rels = grouped[key] || [];
+    return rels.length ? (
+      <CollapsibleCategory
+        key={key}
+        label={label}
+        open={openType === key}
+        onClick={() => setOpenType(openType === key ? '' : key)}
+      >
+        {rels.map((rel, i) =>
+          <EntryCard
+            key={rel.id || i}
+            name={rel.name}
+            subtitle={prettifyGroupType(rel.relationship_type)}
+            desc={rel.desc}
+            strength={rel.strength}
+            fields={[]}
+          />
+        )}
+      </CollapsibleCategory>
+    ) : null;
   });
 
-  const [openIdx, setOpenIdx] = useState(null);
+  const unknownTypes = Object.keys(grouped).filter(k => !knownKeys.includes(k));
+  const unknownRendered = unknownTypes.map(key => {
+    const rels = grouped[key] || [];
+    return rels.length ? (
+      <CollapsibleCategory
+        key={key}
+        label={prettifyGroupType(key)}
+        open={openType === key}
+        onClick={() => setOpenType(openType === key ? '' : key)}
+      >
+        {rels.map((rel, i) =>
+          <EntryCard
+            key={rel.id || i}
+            name={rel.name}
+            subtitle={prettifyGroupType(rel.relationship_type)}
+            desc={rel.desc}
+            strength={rel.strength}
+            fields={[]}
+          />
+        )}
+      </CollapsibleCategory>
+    ) : null;
+  });
 
   return (
     <Section title="Relationships">
-      {relArray.length ? (
-        relArray.map((rel, i) =>
-          <CollapsibleRelationship
-            key={rel.id || i}
-            rel={rel}
-            open={openIdx === i}
-            onClick={() => setOpenIdx(openIdx === i ? null : i)}
-            act={act}
-          />
-        )
-      ) : <Box italic>No relationships defined.</Box>}
+      {standardRendered}
+      {unknownRendered}
+      {noRels && <Box italic>No relationships defined.</Box>}
       <Box mt={2}>
-        <Button icon="plus" content="New Relationship" onClick={() => act('create_relationship')} />
+        <Button icon="wrench" content="Change Relationship" onClick={() => act('change_relationship')} mb={2} />
       </Box>
     </Section>
   );
 };
 
-
-
-
-
+// ====================
+// Chronicle Tab Section
+// ====================
 
 const ChronicleSection = ({ chronicleEvents = [], act }) => {
+  const [open, setOpen] = useLocalState('aboutme_chronicle_open', true); // Show by default
   const events = Array.isArray(chronicleEvents) ? chronicleEvents : [];
   return (
-    <Section title="Chronicle (Events!)">
-      <Button icon="plus" content="Create Chronicle" onClick={() => act('create_chronicle')} mb={1} />
-      {events.length ? (
-        <Table>
-          {events.map((entry, i) => (
-            <Table.Row key={entry.id || i}>
-              <Table.Cell bold>{entry.title}</Table.Cell>
-              <Table.Cell>{entry.details}</Table.Cell>
-              <Table.Cell>{entry.time || entry.timestamp || "—"}</Table.Cell>
-              <Table.Cell>
-                <Button icon="edit" tooltip="Edit" onClick={() => act('edit_chronicle', { id: entry.id })} />
-                <Button icon="trash" tooltip="Delete" color="bad" onClick={() => act('delete_chronicle', { id: entry.id })} />
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table>
-      ) : <Box italic>No chronicle entries yet.</Box>}
-      {events.some(e => (e.memories?.length || e.relationships?.length || e.groups?.length)) && (
-        <Box mt={2}>
-          <b>Related Details:</b>
-          {events.map((entry, i) => (
-            <Box key={entry.id || i} mb={2}>
-              {entry.memories?.length > 0 && <Box mb={1}><b>Memories:</b> {entry.memories.map(m => m.title || m.name).join(', ')}</Box>}
-              {entry.relationships?.length > 0 && <Box mb={1}><b>Relationships:</b> {entry.relationships.map(r => r.name).join(', ')}</Box>}
-              {entry.groups?.length > 0 && <Box mb={1}><b>Groups:</b> {entry.groups.map(g => g.name).join(', ')}</Box>}
-            </Box>
-          ))}
-        </Box>
-      )}
+    <Section title="Chronicle (Events)">
+      <CollapsibleCategory label="Chronicle Events" open={open} onClick={() => setOpen(o => !o)}>
+        {events.length ? events.map((entry, i) => (
+          <EntryCard
+            key={entry.id || i}
+            name={entry.title || `Event #${i + 1}`}
+            subtitle={entry.time || entry.timestamp || "—"}
+            desc={entry.details}
+          />
+        )) : <Box italic>No chronicle entries yet.</Box>}
+      </CollapsibleCategory>
+      <Box mt={2}>
+        <Button icon="wrench" content="Interact With Chronicle" onClick={() => act('interact_chronicle')} mb={2} />
+      </Box>
     </Section>
   );
 };
@@ -339,6 +373,9 @@ const MEMORY_TAGS_UI = [
 
 const MemoriesTabsSection = ({ memories = {}, act }) => {
   const [memTab, setMemTab] = useLocalState('aboutme_memtab', 'all');
+  const [open, setOpen] = useLocalState('aboutme_memories_open', true);
+
+  // Canonical format
   const memObj = Array.isArray(memories) ? { memories_all: memories } : (memories || {});
   const tagFiltered = memTab === 'all'
     ? Array.isArray(memObj.memories_all) ? memObj.memories_all : []
@@ -358,31 +395,28 @@ const MemoriesTabsSection = ({ memories = {}, act }) => {
             <option key={value} value={value}>{text}</option>
           ))}
         </select>
-        <Button icon="plus" ml={2} content="Add Memory" onClick={() => act('create_memory')} />
+        <Button icon="wrench" content="Manage Memories" onClick={() => act('manage_memories')} mb={2} />
       </Box>
-      <Table>
+      <CollapsibleCategory
+        label="Memories List"
+        open={open}
+        onClick={() => setOpen(o => !o)}
+      >
         {tagFiltered.length ? tagFiltered.map((mem, i) => (
-          <Table.Row key={mem.id || i}>
-            <Table.Cell bold>{mem.title}</Table.Cell>
-            <Table.Cell>{mem.details}</Table.Cell>
-            <Table.Cell>
-              {mem.tags && mem.tags.length
-                ? mem.tags.join(', ')
-                : <span style={{ color: '#aaa', fontStyle: 'italic' }}>No tags</span>}
-            </Table.Cell>
-            <Table.Cell>{mem.status || "—"}</Table.Cell>
-            <Table.Cell>{mem.time || "—"}</Table.Cell>
-            <Table.Cell>
-              <Button icon="edit" tooltip="Edit" onClick={() => act('edit_memory', { id: mem.id })} />
-              <Button icon="trash" color="bad" tooltip="Delete" onClick={() => act('delete_memory', { id: mem.id })} />
-            </Table.Cell>
-          </Table.Row>
+          <EntryCard
+            key={mem.id || i}
+            name={mem.title}
+            desc={mem.details}
+            subtitle={mem.time || "—"}
+            fields={[
+              { label: 'Tags', value: Array.isArray(mem.tags) && mem.tags.length ? mem.tags.join(', ') : <span style={{ color: '#aaa', fontStyle: 'italic' }}>No tags</span> },
+              { label: 'Status', value: mem.status || "—" },
+            ]}
+          />
         )) : (
-          <Table.Row>
-            <Table.Cell colSpan="6" italic>No memories in this category</Table.Cell>
-          </Table.Row>
+          <Box italic>No memories in this category.</Box>
         )}
-      </Table>
+      </CollapsibleCategory>
     </Section>
   );
 };
@@ -425,10 +459,21 @@ export const AboutmeInt = (props, context) => {
   return (
     <Window width={400} height={600} title="About Me">
       <Window.Content scrollable>
-        <Box italic mb={1}>
-          Welcome to the New About Me Panel!<br />
-          There is no round to round Saving, while we test this out.
+        <Box italic mb={2}>
+          <details open>
+            <summary>Welcome to the New About Me Panel!</summary>
+            <div style={{ marginTop: 8 }}>
+              There is no round to round Saving, while we test this out.<br />
+              Character's overview! <br />
+              Group interactions as members, officers, or leaders! <br />
+              Relationships, based on groups and personal loyalty! <br />
+              Chronicles! In-round and actively Hosted by groups! <br />
+              Lets make some memories! <br />
+              Use the copy-paste payload and screenshots. To make feedback and help us sort out any issues! <br />
+            </div>
+          </details>
         </Box>
+
         <Tabs>
           <Tabs.Tab selected={tab === 'overview'} onClick={() => setTab('overview')}>Overview</Tabs.Tab>
           <Tabs.Tab selected={tab === 'groups'} onClick={() => setTab('groups')}>Groups</Tabs.Tab>
@@ -437,11 +482,18 @@ export const AboutmeInt = (props, context) => {
           <Tabs.Tab selected={tab === 'memories'} onClick={() => setTab('memories')}>Memories</Tabs.Tab>
         </Tabs>
         <Box mt={2}>
-          {tab === 'groups' && <GroupsSection groups={groups} act={act} />}
+          {tab === 'groups' && (
+            <GroupsSection
+              groups={groups}
+              act={act}
+              // This uses display name, which is what your group system expects for promote/demote/remove actions
+              currentCkey={overview?.general?.name || ''}
+            />
+          )}
           {tab === 'relationships' && <RelationshipsSection relationships={relationships} act={act} />}
           {tab === 'chronicle' && <ChronicleSection chronicleEvents={chronicleEvents} act={act} />}
           {tab === 'memories' && <MemoriesTabsSection memories={memories} act={act} />}
-          {tab === 'overview' && <OverviewSection overview={overview} status={data.status} alignment={data.alignment} />}
+          {tab === 'overview' && <OverviewSection overview={overview} status={data.status} alignment={data.alignment} act={act} />}
         </Box>
         <Box mt={3}>
           <details>
@@ -462,8 +514,8 @@ export const AboutmeInt = (props, context) => {
       </Window.Content>
     </Window>
   );
-};
 
+};
 
 AboutmeInt.displayName = 'AboutmeInt';
 AboutmeInt.defaultProps = {

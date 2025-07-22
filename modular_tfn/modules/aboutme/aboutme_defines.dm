@@ -75,9 +75,12 @@
 // Organizations
 #define GROUP_KEY_ORG_GOVERNMENT        "org_government"
 #define GROUP_KEY_ORG_MILITARY          "org_military"
-#define GROUP_KEY_ORG_POLICEDEPARTMENT  "org_policedepartment"
+#define GROUP_KEY_ORG_POLICE  "org_police"
 #define GROUP_KEY_ORG_HOSPITAL          "org_hospital"
+#define GROUP_KEY_ORG_TOWER          "org_tower"
 #define GROUP_KEY_ORG_PRIMOGENCOUNCIL   "org_primogencouncil"
+#define GROUP_KEY_ORG_BIKERGANG   "org_bikergang"
+#define GROUP_KEY_ORG_CORP   "org_primogencouncil"
 // Parties
 #define GROUP_KEY_PARTY_COTERIE         "party_coterie"
 #define GROUP_KEY_PARTY_SQUAD           "party_squad"

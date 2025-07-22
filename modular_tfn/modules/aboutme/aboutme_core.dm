@@ -22,6 +22,11 @@
     var/list/current_groups = list() //This is their current keys, for the round, if they got kicked out in this round, or left, etc.
     var/about_me_ui_opened = FALSE //Is the player doing stuff in here? If so, wait a sec.
 
+/datum/component/about_me/Destroy() //Cleans up after itself.
+    if (ismob(owner))
+        remove_mob_from_all_groups(owner)
+    ..()
+
 
 /datum/component/about_me/Initialize()
     . = ..()
@@ -30,9 +35,10 @@
         GLOB.aboutme_components[owner.ckey] = src
         var/datum/action/about_me/about_me = new(parent)
         about_me.Grant(parent)
+    assign_groups()
 
 /datum/component/about_me/proc/get_full_payload()
-    assign_groups()
+
     var/mob/living/carbon/human/H = owner
     // Keep all assignment keys in sync for debug, future editing, or assignment.
     src.role    = ""
@@ -159,8 +165,6 @@
             EXIST.visible = R.visible
             return // Already present (now updated)
     relationships_all += R
-
-
 
 /datum/component/about_me/proc/GetRelationshipTo(target, group_type)
     if (!islist(relationships_all)) return null

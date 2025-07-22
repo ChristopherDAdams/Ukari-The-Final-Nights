@@ -1,9 +1,15 @@
+/datum/component/about_me
+    var/tgui_id = "AboutmeInt"
 //This simply sets up the character's personal TGUI display. Once, then its gone. Used for loading in-round changed information.
 /datum/component/about_me/ui_state(mob/user)
     return GLOB.always_state
 
 /datum/component/about_me/ui_data(mob/user)
-    return get_full_payload()
+    try
+        var/payload = update_payload()
+        return payload // <--- No json_encode!
+    catch(var/exception/e)
+        return list("error" = "ui_data exception: [e]")
 
 /datum/component/about_me/ui_static_data(mob/user)
     return list()
@@ -37,22 +43,34 @@
 	if (about_me_component)
 		about_me_component.ui_interact(owner)
 
+// Return a native DM list, NOT a string or json_encode result
+/datum/component/about_me/proc/update_payload()
+    var/payload = src.get_full_payload()
+    return payload
 
-//BUTTONS!
+
+//BUTTONS! This is where the UI goes to aboutme_tgui_player_input.dm
 /datum/component/about_me/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
-	. = ..()
-	if (.)
-		return
+    . = ..()
+    if (.) return
+    var/user = ui.user
 
-	// ------ Memory Actions ------
-	//if (action == "create_memory")
-	//	src.prompt_create_memory(ui.user)
-	//	return TRUE
+    if (action == "edit_overview")
+        src.prompt_edit_overview(user)
+        return TRUE
 
-	//if (action == "edit_memory")
-	//	src.prompt_edit_memory(ui.user)
-	//	return TRUE
+    if (action == "manage_groups")
+        src.prompt_manage_groups(user)
+        return TRUE
 
-	//if (action == "delete_memory")
-	//	src.prompt_delete_memory(ui.user)
-	//	return TRUE
+    if (action == "change_relationship")
+        src.prompt_change_relationship(user)
+        return TRUE
+
+    if (action == "interact_chronicle")
+        src.prompt_interact_chronicle(user)
+        return TRUE
+
+    if (action == "manage_memories")
+        src.prompt_manage_memories(user)
+        return TRUE

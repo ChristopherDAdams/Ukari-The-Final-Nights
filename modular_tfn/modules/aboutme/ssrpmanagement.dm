@@ -56,6 +56,15 @@ var/global/list/canonical_groups = list(
     GROUP_KEY_TRIBE_SILENTSTRIDERS      = /datum/group/tribe/silentstriders,
     GROUP_KEY_TRIBE_SILVERFANGS         = /datum/group/tribe/silverfangs,
     GROUP_KEY_TRIBE_STARGAZERS          = /datum/group/tribe/stargazers,
+
+	// --- Organizations ---
+    GROUP_KEY_ORG_GOVERNMENT   = /datum/group/organization/government,
+    GROUP_KEY_ORG_POLICE       = /datum/group/organization/policedepartment,
+    GROUP_KEY_ORG_HOSPITAL     = /datum/group/organization/hospital,
+    GROUP_KEY_ORG_MILITARY     = /datum/group/organization/military,
+    GROUP_KEY_ORG_GANG         = /datum/group/organization/gang,
+    GROUP_KEY_ORG_CORP         = /datum/group/organization/corporation,
+
 )
 
 SUBSYSTEM_DEF(rpmanagement)
