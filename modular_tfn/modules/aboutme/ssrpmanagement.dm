@@ -1,8 +1,29 @@
-// ================================
-// RP Management Subsystem - ssrpmanagement.dm (CLEAN)
-// ================================
-// Centralizes all group and persistence logic under the RP Management subsystem.
-// ================================
+// ================================================================
+// RP Management Subsystem (ssrpmanagement.dm)
+// ================================================================
+//
+// Central subsystem for all roleplay meta-data and About Me group logic.
+// Responsible for initializing, tracking, and coordinating:
+//    • All core group datums (city, factions, sects, clans, tribes, organizations, etc.)
+//    • About Me component registration and lookup (for each character)
+//    • Chronicle datums (events, orders, stories relevant to groups)
+//    • Future: Persistence and round-to-round saves
+//
+// Major Elements:
+//    - GLOB.groups:          All active group datums for the round (public/private, joinable, etc.)
+//    - canonical_groups:     Canon group type mapping, auto-initialized at round start
+//    - aboutme_components:   List of all About Me components (one per active character)
+//    - chronicles:           List of all chronicle (story/event) datums for this round
+//
+// SUBSYSTEM_DEF(rpmanagement):
+//    - Core SS13-style subsystem controlling RP meta-data
+//    - On startup, runs InitAllGroups() to register all canonical groups
+//    - Handles global lookup for groups, About Me components, and chronicles
+//
+// If you want to add a new canonical group, add its key and typepath to canonical_groups.
+// All About Me UI group lookup and management is routed through this subsystem for live, session-based gameplay.
+// ================================================================
+
 GLOBAL_LIST_EMPTY(groups)
 GLOBAL_LIST_EMPTY(canonical_groups)
 GLOBAL_LIST_EMPTY(aboutme_components) //All aboutme_components

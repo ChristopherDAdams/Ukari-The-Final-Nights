@@ -1,5 +1,8 @@
 //Base Group Datum
 /datum/group
+    var/is_public = TRUE
+	//True means anyone can join this group, and the player promises to be at least a little loyal 20,
+	//False means the active leader and officers have to vote approve it.
     var/id
     var/name = "Some Group"
     var/group_type
@@ -10,8 +13,6 @@
     var/list/officers = list()  // List of ckeys
     var/list/members = list()   // List of ckeys
     var/orders = "" //These are changeable orders, that the leader can choose.
-
-
 
 // Given a unique key (can be ckey, real_name, or your own player key system), finds the mob reference
 /datum/group/proc/locate_mob_by_target_key(target_key)
@@ -49,17 +50,6 @@
         if (M in leaders) leaders -= M
         if (M in officers) officers -= M
 
-
-
-
-
-
-
-
-
-
-
-
 //Backend
 /datum/group/proc/get_relationship_type(owner)
     switch(group_type)
@@ -93,7 +83,6 @@
         "members" = get_member_display_list(),
         "orders" = orders
     )
-
 
 //Might be multiple leaders in the case of parties or more democratic organizations, like councils.
 //If a leader makes a change and there are other leaders, they have to meet 50% vote to make the change.

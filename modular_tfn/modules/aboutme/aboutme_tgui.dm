@@ -1,5 +1,27 @@
-/datum/component/about_me
-    var/tgui_id = "AboutmeInt"
+// ==========================================================
+// About Me TGUI Handler (aboutme_tgui.dm)
+// ==========================================================
+//aboutme_defines.dm is a catch all for the defines made or needed by this system.
+// This file acts as the bridge between BYOND's backend and the About Me TGUI (AboutmeInt.jsx) interface.
+//
+// - Sets up the About Me TGUI window for each player and pushes data payloads from their /datum/component/about_me.
+// - Handles ui_act() events from the frontend, routing button actions to the appropriate backend procs.
+// - Ensures the UI reflects any changes made by the player or staff through About Me actions.
+//
+// Key Responsibilities:
+//   • Create and update the About Me TGUI window
+//   • Provide fresh data payloads as About Me info is edited in-round
+//   • Routes all UI button actions to the correct BACKEND procs (in aboutme_core.dm and aboutme_tgui_player_input.dm)
+//
+// UI architecture:
+//   - About Me data is gathered from the /datum/component/about_me attached to each mob.
+//   - AboutmeInt.jsx (TGUI React UI) displays the info, split into Overview, Groups, Relationships, Chronicle, and Memories tabs.
+//   - This handler keeps the UI and game state in sync, but does NOT do the actual game logic or data changes (that’s handled in the component and player input files).
+//
+// To add new actions/buttons/options:
+//   - Add their routing here in ui_act() or use the existing options, then implement further logic in aboutme_tgui_player_input.dm where appropriate to keep this clean.
+// ==========================================================
+
 //This simply sets up the character's personal TGUI display. Once, then its gone. Used for loading in-round changed information.
 /datum/component/about_me/ui_state(mob/user)
     return GLOB.always_state

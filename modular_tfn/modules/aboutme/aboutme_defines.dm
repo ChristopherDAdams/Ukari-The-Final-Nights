@@ -1,7 +1,24 @@
-
-// ================================
-// AboutMe System Defines
-// ================================
+// ===========================================================
+// About Me System Defines (aboutme_defines.dm)
+// ===========================================================
+//
+// This file contains all the core constants, macros, and key/tag definitions
+// for the About Me and RP Management systems. Centralizing these here makes
+// the rest of the system easy to expand and maintain.
+//
+// Major sections include:
+//    - Group Types & Group Keys (city, faction, clan, etc)
+//    - Group Tag Macros for dynamic lookup and assignment
+//    - Standard group/social/setting tags
+//    - Chronicle Tags (for events, wars, relationships, etc.)
+//    - Relationship Types & Flags
+//    - Memory Tags (for filtering About Me entries)
+//
+// When adding new groups, relationship types, tags, or memory types,
+// always update this file!
+//
+// Used by: ssrpmanagement.dm, aboutme_core.dm, aboutme_tgui_player_input.dm, and TGUI UI code
+// ===========================================================
 
 // ================================
 // Group Types
@@ -206,7 +223,6 @@
 	CHRONICLE_TAG_RELATIONSHIP \
 )
 
-
 // -------------------------
 // Relationship Types
 // -------------------------
@@ -224,6 +240,27 @@
 #define REL_TYPE_MAKER        "maker"
 #define REL_TYPE_VICTIM       "victim"
 #define REL_TYPE_COTERIE      "coterie"
+
+// ================================
+// Relationship Types List
+// ================================
+#define REL_TYPES list( \
+    "Sire", \
+    "Childe", \
+    "Lover", \
+    "Rival", \
+    "Enemy", \
+    "Friend", \
+    "Ally", \
+    "Acquaintance", \
+    "Confidant", \
+    "Target", \
+    "Obsession", \
+    "Maker", \
+    "Victim", \
+    "Coterie" \
+)
+
 
 // -------------------------
 // Relationship Flags

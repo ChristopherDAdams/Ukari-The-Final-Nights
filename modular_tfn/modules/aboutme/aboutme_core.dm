@@ -1,9 +1,27 @@
+// ===============================================
 // About Me Component (aboutme_core.dm)
-// Core data holder and interface for character info, memories, relationships, chronicles, and groups
-// Expands via aboutme_memories, aboutme_relationships, aboutme_chronicles, aboutme_group, etc.
-// Data FOR and BY the aboutme system, is only accessed/modified through this component, and the payload it generates for TGUI.
+// ===============================================
+//
+//
+// This is the core player and staff interface for the About Me system.
+//
+// - Each mob gets a /datum/component/about_me attached on join.
+// - Stores and manages the character's About Me data (bio, goals, group keys, memories, etc).
+// - Syncs and updates data from the mob to the RP Management subsystem (ssrpmanagement).
+// - Prepares data to send to TGUI for display (AboutmeInt.jsx).
+// - Handles updating in-memory variables when the player edits details in the UI.
+// - Will support save/load for persistence in the future.
+//
+//  Key files connected to this component:
+//    - aboutme_tgui.dm (TGUI window handler and UI dispatcher)
+//    - aboutme_tgui_player_input.dm (branching input/menu logic)
+//    - AboutmeInt.jsx (TGUI React UI, front-end)
+//
+//  For contributors: To add new fields or logic, add variables and helper procs here!
+// ===============================================
 
 /datum/component/about_me
+    var/tgui_id = "AboutmeInt" //UI
     var/mob/living/carbon/human/owner
     // Core AboutMe group assignment keys
     var/role = ""
@@ -22,6 +40,13 @@
     var/list/current_groups = list() //This is their current keys, for the round, if they got kicked out in this round, or left, etc.
     var/about_me_ui_opened = FALSE //Is the player doing stuff in here? If so, wait a sec.
 
+    //overview
+    var/goals = ""
+    var/personal_quote = ""
+    var/gender = "" //With pronouns!
+    var/physical_desc = ""
+
+
 /datum/component/about_me/Destroy() //Cleans up after itself.
     if (ismob(owner))
         remove_mob_from_all_groups(owner)
@@ -38,7 +63,6 @@
     assign_groups()
 
 /datum/component/about_me/proc/get_full_payload()
-
     var/mob/living/carbon/human/H = owner
     // Keep all assignment keys in sync for debug, future editing, or assignment.
     src.role    = ""
@@ -77,6 +101,7 @@
         // Faction assignment
         if (iskindred(H))
             src.faction = "Kindred"
+			src.species = "Kindred" //hotfix for unimmersive text.
         else if (isgarou(H))
             src.faction = "Fera"
         else
@@ -141,7 +166,11 @@
     return list(
         "overview" = list(
             "general" = general,
-            "species" = species
+            "species" = species,
+            "goals" = src.goals, //vars like this are set by interactions with the system.
+            "personal_quote" = src.personal_quote,
+            "gender" = src.gender,
+            "physical_desc" = src.physical_desc
         ),
         "groups"        = group_objects,
         "relationships" = relationships,

@@ -36,8 +36,7 @@ const OverviewSection = ({ overview = {}, status, alignment, act }) => {
       <LabeledList>
         <LabeledList.Item label="Name">{displayOrUnknown(name)}</LabeledList.Item>
         <LabeledList.Item label="Species">{displayOrUnknown(speciesName)}</LabeledList.Item>
-        <LabeledList.Item label="Role">
-          {displayOrUnknown(role)}{special_role && ` (${special_role})`}
+        <LabeledList.Item label="Role">{displayOrUnknown(role)}{special_role && ` (${special_role})`}
         </LabeledList.Item>
         {!!clan && clan !== "None" && clan !== "Unknown" &&
           <LabeledList.Item label="Clan">{clan}</LabeledList.Item>}
@@ -45,8 +44,10 @@ const OverviewSection = ({ overview = {}, status, alignment, act }) => {
           <LabeledList.Item label="Generation">{generation}</LabeledList.Item>}
         <LabeledList.Item label="Masquerade">{displayOrUnknown(masquerade)}</LabeledList.Item>
         <LabeledList.Item label="Humanity">{displayOrUnknown(humanity)}</LabeledList.Item>
-        <LabeledList.Item label="Status">{displayOrUnknown(status)}</LabeledList.Item>
-        <LabeledList.Item label="Alignment">{displayOrUnknown(alignment)}</LabeledList.Item>
+        <LabeledList.Item label="Goals">{displayOrUnknown(overview.goals)}</LabeledList.Item>
+        <LabeledList.Item label="Personal Quote">{displayOrUnknown(overview.personal_quote)}</LabeledList.Item>
+        <LabeledList.Item label="Gender/Pronouns">{displayOrUnknown(overview.gender)}</LabeledList.Item>
+        <LabeledList.Item label="Physical Description">{displayOrUnknown(overview.physical_desc)}</LabeledList.Item>
         {/* More overview fields can be added here as needed */}
       </LabeledList>
 
