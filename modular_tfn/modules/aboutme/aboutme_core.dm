@@ -101,7 +101,7 @@
         // Faction assignment
         if (iskindred(H))
             src.faction = "Kindred"
-			src.species = "Kindred" //hotfix for unimmersive text.
+            src.species = "Kindred" //hotfix for unimmersive text.
         else if (isgarou(H))
             src.faction = "Fera"
         else
@@ -258,8 +258,6 @@
             "mutual" = R.mutual,
         ))
     return exported
-
-
 
 /datum/component/about_me/proc/export_group_payload()
     var/list/group_objects = list()
