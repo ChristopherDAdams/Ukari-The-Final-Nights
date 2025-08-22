@@ -17,7 +17,7 @@
 	if (is_right_clicking)
 		switch (pre_attack_secondary(target, user, params))
 			if (SECONDARY_ATTACK_CALL_NORMAL)
-				pre_attack_result = pre_attack(src, user, params)
+				pre_attack_result = pre_attack(target, user, params)
 			if (SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN)
 				return TRUE
 			if (SECONDARY_ATTACK_CONTINUE_CHAIN)
@@ -25,7 +25,7 @@
 			else
 				CRASH("pre_attack_secondary must return an SECONDARY_ATTACK_* define, please consult code/__DEFINES/combat.dm")
 	else
-		pre_attack_result = pre_attack(src, user, params)
+		pre_attack_result = pre_attack(target, user, params)
 
 	if(pre_attack_result)
 		return TRUE
@@ -265,6 +265,14 @@
 		), ARMOR_MAX_BLOCK)
 
 	var/damage = attacking_item.force
+	//TFN EDIT START -- Fixes Meleemods for Weapons
+	var/meleemod = 1
+	if(istype(user, /mob/living/carbon/human))
+		var/mob/living/carbon/human/H = user
+		if(H.dna?.species)
+			meleemod = H.dna.species.meleemod
+	damage = damage * meleemod
+	//TFN EDIT END -- Fixes Meleemods for Weapons
 
 	var/wounding = attacking_item.wound_bonus
 	if((attacking_item.item_flags & SURGICAL_TOOL) && !user.combat_mode && body_position == LYING_DOWN && (LAZYLEN(surgeries) > 0))

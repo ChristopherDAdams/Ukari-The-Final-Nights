@@ -99,6 +99,15 @@ Dancer
 	allowed_species = list("Vampire", "Kuei-Jin")
 	excluded_clans = list(CLAN_NAGARAJA)
 
+/datum/quirk/baby_teeth
+	name = "Baby Teeth"
+	desc = "Your fangs have been pulled out and have not regrown normally or they did not grow at all."
+	mob_trait = TRAIT_BABY_TEETH
+	value = -4
+	gain_text = "<span class='warning'>You lost your fangs.</span>"
+	lose_text = "<span class='notice'>You regrow your fangs.</span>"
+	allowed_species = list("Vampire")
+
 /datum/quirk/lazy
 	name = "Lazy"
 	desc = "You do things much more slowly than others."
@@ -641,7 +650,7 @@ Dancer
 
 /datum/quirk/diablerist
 	name = "Diablerist"
-	desc = "For one reason or another, you have committed Diablerie in your past, a great crime within Kindred society. <b>This is not a license to Diablerize without proper reason!</b>"
+	desc = "For one reason or another, you have committed Diablerie in your past, a great crime within Kindred society. <b>This is not a license to Diablerize without proper reason! If you are found out, you can (and most likely will be) round removed. You have been warned.</b>"
 	value = 0
 	allowed_species = list("Vampire")
 

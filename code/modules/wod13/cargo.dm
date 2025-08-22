@@ -216,8 +216,8 @@
 	crate_name = "weapon crate"
 
 /datum/supply_pack/vampire/weaponshotgun
-	name = "Weapon (pomp shotgun)"
-	desc = "Contains a pomp shotgun."
+	name = "Weapon (pump shotgun)"
+	desc = "Contains a pump shotgun."
 	cost = 800
 	contains = list(/obj/item/gun/ballistic/shotgun/vampire)
 	crate_name = "weapon crate"
@@ -323,6 +323,13 @@
 	desc = "Contains a box of 5.45 ammunition."
 	cost = 500
 	contains = list(/obj/item/ammo_box/vampire/c545 = 2)
+	crate_name = "ammo crate"
+
+/datum/supply_pack/vampire/ammo44
+	name = "Ammo (.45 ACP)"
+	desc = "Contains a box of .45 ACP ammunition."
+	cost = 400
+	contains = list(/obj/item/ammo_box/vampire/c45acp = 2)
 	crate_name = "ammo crate"
 
 /datum/supply_pack/vampire/ammo44
@@ -621,6 +628,6 @@
 		qdel(I)
 		playsound(src, 'sound/machines/machine_vend.ogg', 50, TRUE, extrarange = -3)
 		to_chat(user, span_notice("You place the box at [src]."))
-		new /obj/item/stack/dollar/five(get_turf(user))
+		new /obj/item/stack/dollar/fifty(get_turf(user))
 		return
 	..()

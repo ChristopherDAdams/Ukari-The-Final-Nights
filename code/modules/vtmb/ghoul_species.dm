@@ -233,8 +233,7 @@
 		button.color = "#970000"
 		animate(button, color = "#ffffff", time = 20, loop = 1)
 		if(length(H.all_wounds))
-			for(var/i in 1 to min(5, length(H.all_wounds)))
-				var/datum/wound/W = pick(H.all_wounds)
+			for(var/datum/wound/W as anything in H.all_wounds)
 				W.remove_wound()
 		H.adjustCloneLoss(-5, TRUE)
 		var/obj/item/organ/eyes/eyes = H.getorganslot(ORGAN_SLOT_EYES)
@@ -284,7 +283,7 @@
  * Arguments:
  * * searched_discipline - Name or typepath of the Discipline being searched for.
  */
-/datum/species/ghoul/proc/get_discipline(searched_discipline)
+/datum/species/ghoul/get_discipline(searched_discipline)
 	for(var/datum/discipline/discipline in disciplines)
 		if (ispath(searched_discipline, /datum/discipline))
 			if (istype(discipline, searched_discipline))

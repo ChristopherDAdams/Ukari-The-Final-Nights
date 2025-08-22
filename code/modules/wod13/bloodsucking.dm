@@ -18,6 +18,9 @@
 /mob/living/carbon/human/proc/drinksomeblood(mob/living/mob)
 	if(!mob)
 		return
+	if(HAS_TRAIT(src, TRAIT_BABY_TEETH))
+		to_chat(src, span_warning("Your fangs won't manage to pierce the skin let alone suck in their state."))
+		return FALSE
 	var/bloodgain = max(1, mob.bloodquality-1)
 	var/fumbled = FALSE
 	last_drinkblood_use = world.time
@@ -155,6 +158,8 @@
 						SEND_SIGNAL(src, COMSIG_PATH_HIT, PATH_SCORE_DOWN, 0)
 						AdjustMasquerade(-1)
 						if(do_after(src, 60 SECONDS, mob))
+							if(mob.has_status_effect(/datum/status_effect/blood_of_potency))
+								mob.remove_status_effect(/datum/status_effect/blood_of_potency)
 							if(K.generation >= generation)
 								message_admins("[ADMIN_LOOKUPFLW(src)] successfully Diablerized [ADMIN_LOOKUPFLW(mob)]")
 								log_attack("[key_name(src)] successfully Diablerized [key_name(mob)].")
