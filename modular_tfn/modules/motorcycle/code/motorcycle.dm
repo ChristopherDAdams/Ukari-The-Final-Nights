@@ -185,13 +185,11 @@
 		playsound(src, 'modular_tfn/modules/motorcycle/sound/bike_idle_run.ogg', 100, TRUE, 10, 1.5, 0, 222)
 		addtimer(CALLBACK(src, PROC_REF(play_idle_loop)), 4.5 SECONDS)
 
-//VARIANT, only one bike is in the sprite, this is still the old variant for now. (Gonna give the baron their own bike, after i learn how to rename these.)
-/* Commented out for now, will finish.
+
 /obj/vehicle/ridden/motorcycle/baron
-	icon_state = "speedbike_red"
-	overlay_state = "cover_red"
+	icon_state = "motorcycle_baron"
+	overlay_state = "motorcycle_baron_overlay"
 	access = "baron"
-*/
 
 //Keys/Lockpicking/Repair/Various: All from car.dm, very slightly modified.
 /obj/vehicle/ridden/motorcycle/attackby(obj/item/I, mob/living/user, params)
